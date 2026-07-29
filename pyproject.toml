@@ -1,0 +1,126 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "target-prioritization"
+version = "0.1.0"
+description = "Explainable disease-target prioritization from integrated public biomedical evidence"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = { file = "LICENSE" }
+authors = [{ name = "Chirag N Vijay" }]
+
+dependencies = [
+    # Data processing
+    "pandas>=2.2",
+    "polars>=1.0",
+    "numpy>=1.26",
+    "pyarrow>=16.0",
+    "duckdb>=1.0",
+    # Config & validation
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "pyyaml>=6.0",
+    # HTTP
+    "httpx>=0.27",
+    "tenacity>=8.4",
+    # Machine learning
+    "scikit-learn>=1.5",
+    "xgboost>=2.1",
+    "lightgbm>=4.4",
+    # Explainability
+    "shap>=0.46",
+    # Graph
+    "networkx>=3.3",
+    # Visualization
+    "plotly>=5.22",
+    "matplotlib>=3.9",
+    # App & API
+    "streamlit>=1.36",
+    "fastapi>=0.111",
+    "uvicorn>=0.30",
+    # CLI & logging
+    "typer>=0.12",
+    "rich>=13.7",
+    "structlog>=24.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-cov>=5.0",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "pre-commit>=3.7",
+    "types-PyYAML",
+    "pandas-stubs",
+    "ipykernel>=6.29",
+    "jupyter>=1.0",
+]
+tune = ["optuna>=3.6"]
+
+[project.scripts]
+dtp-download = "target_prioritization.cli:download_main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+target_prioritization = ["py.typed"]
+
+# ---------------------------------------------------------------------------
+# Tooling
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "ARG", "PTH", "RUF"]
+ignore = [
+    "E501",   # line length is handled by the formatter
+    "B008",   # typer/fastapi idiomatically call functions in argument defaults
+    # Unicode punctuation is deliberate here: the spec documents use en dashes
+    # and curly apostrophes ("Disease–Target", "Parkinson's"), and the disease
+    # name normalizer has to match both apostrophe forms to resolve against the
+    # ontology at all.
+    "RUF001",
+    "RUF002",
+    "RUF003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ARG"]
+# Notebooks are for exploration (Context.md §34), where imports are staged
+# ahead of use and cell order is deliberate. The package itself is held to the
+# full standard; anything that matters graduates out of a notebook into src/.
+"*.ipynb" = ["E402", "F401", "I001"]
+
+[tool.mypy]
+python_version = "3.11"
+packages = ["target_prioritization"]
+mypy_path = "src"
+strict = false
+warn_return_any = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*", "scripts.*"]
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra --strict-markers"
+markers = [
+    "network: test requires network access (deselect with '-m \"not network\"')",
+    "needs_data: test requires downloaded datasets in data/raw (deselect with '-m \"not needs_data\"')",
+]

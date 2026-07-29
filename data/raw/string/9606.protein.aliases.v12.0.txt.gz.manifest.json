@@ -1,0 +1,15 @@
+{
+  "bytes": 19777800,
+  "checksum_verified_against": null,
+  "dataset": "protein_aliases",
+  "extra": {},
+  "fetched_at": "2026-07-29T18:47:18+00:00",
+  "license": "CC BY 4.0",
+  "notes": null,
+  "path": "data/raw/string/9606.protein.aliases.v12.0.txt.gz",
+  "release": "v12.0",
+  "sha256": "b65f730b993ed0c1bd72edf4565d3d425db42861101b29699704810e8f125680",
+  "source": "string",
+  "url": "https://stringdb-downloads.org/download/protein.aliases.v12.0/9606.protein.aliases.v12.0.txt.gz",
+  "version_pinned": true
+}

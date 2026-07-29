@@ -1,0 +1,15 @@
+{
+  "bytes": 7150787,
+  "checksum_verified_against": null,
+  "dataset": "disease",
+  "extra": {},
+  "fetched_at": "2026-07-29T18:42:52+00:00",
+  "license": "CC0 1.0",
+  "notes": null,
+  "path": "data/raw/open_targets/disease/disease.parquet",
+  "release": "26.06",
+  "sha256": "b328c5e775bc40d954f2e058aa59e8e972f2883a262d096f8dffe365736a1aed",
+  "source": "open_targets",
+  "url": "https://ftp.ebi.ac.uk/pub/databases/opentargets/platform/26.06/output/disease/disease.parquet",
+  "version_pinned": true
+}

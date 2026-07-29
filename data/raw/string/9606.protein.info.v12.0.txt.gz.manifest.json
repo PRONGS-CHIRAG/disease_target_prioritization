@@ -1,0 +1,15 @@
+{
+  "bytes": 1970090,
+  "checksum_verified_against": null,
+  "dataset": "protein_info",
+  "extra": {},
+  "fetched_at": "2026-07-29T18:47:14+00:00",
+  "license": "CC BY 4.0",
+  "notes": null,
+  "path": "data/raw/string/9606.protein.info.v12.0.txt.gz",
+  "release": "v12.0",
+  "sha256": "144de4b0d98c6a7dfde6ddc2591cf88657f27b989eadff4f501450c3ed1f0f1c",
+  "source": "string",
+  "url": "https://stringdb-downloads.org/download/protein.info.v12.0/9606.protein.info.v12.0.txt.gz",
+  "version_pinned": true
+}

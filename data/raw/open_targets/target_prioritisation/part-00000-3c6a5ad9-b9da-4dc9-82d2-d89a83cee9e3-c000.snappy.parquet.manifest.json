@@ -1,0 +1,15 @@
+{
+  "bytes": 1915147,
+  "checksum_verified_against": null,
+  "dataset": "target_prioritisation",
+  "extra": {},
+  "fetched_at": "2026-07-29T18:46:29+00:00",
+  "license": "CC0 1.0",
+  "notes": "The maxClinicalStage column is derived from clinical development status and is denylisted. The remaining columns are safe.\n",
+  "path": "data/raw/open_targets/target_prioritisation/part-00000-3c6a5ad9-b9da-4dc9-82d2-d89a83cee9e3-c000.snappy.parquet",
+  "release": "26.06",
+  "sha256": "d2e0275c9f41c54e57ed4ac8b6e705b3a99b667f4d9914a7746b00d718e0b53d",
+  "source": "open_targets",
+  "url": "https://ftp.ebi.ac.uk/pub/databases/opentargets/platform/26.06/output/target_prioritisation/part-00000-3c6a5ad9-b9da-4dc9-82d2-d89a83cee9e3-c000.snappy.parquet",
+  "version_pinned": true
+}

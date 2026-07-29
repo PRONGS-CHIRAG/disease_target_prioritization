@@ -1,0 +1,15 @@
+{
+  "bytes": 281271,
+  "checksum_verified_against": null,
+  "dataset": "drug_mechanism_of_action",
+  "extra": {},
+  "fetched_at": "2026-07-29T18:46:55+00:00",
+  "license": "CC0 1.0",
+  "notes": null,
+  "path": "data/raw/open_targets/drug_mechanism_of_action/part-00000-10b94b1b-f29a-440c-98e0-c91862b6d2a8-c000.snappy.parquet",
+  "release": "26.06",
+  "sha256": "949aedc4717356279877da143a13cf11f267f96d062fe0e12c1c44816959cb4a",
+  "source": "open_targets",
+  "url": "https://ftp.ebi.ac.uk/pub/databases/opentargets/platform/26.06/output/drug_mechanism_of_action/part-00000-10b94b1b-f29a-440c-98e0-c91862b6d2a8-c000.snappy.parquet",
+  "version_pinned": true
+}

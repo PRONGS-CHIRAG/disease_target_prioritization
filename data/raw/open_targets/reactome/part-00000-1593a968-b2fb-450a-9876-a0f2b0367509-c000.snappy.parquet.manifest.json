@@ -1,0 +1,15 @@
+{
+  "bytes": 209963,
+  "checksum_verified_against": null,
+  "dataset": "reactome",
+  "extra": {},
+  "fetched_at": "2026-07-29T18:46:55+00:00",
+  "license": "CC0 1.0",
+  "notes": null,
+  "path": "data/raw/open_targets/reactome/part-00000-1593a968-b2fb-450a-9876-a0f2b0367509-c000.snappy.parquet",
+  "release": "26.06",
+  "sha256": "6bbc6c2776e19b8a98a5452aaa65ea194da9872b372da6114c1b6a0e42680dec",
+  "source": "open_targets",
+  "url": "https://ftp.ebi.ac.uk/pub/databases/opentargets/platform/26.06/output/reactome/part-00000-1593a968-b2fb-450a-9876-a0f2b0367509-c000.snappy.parquet",
+  "version_pinned": true
+}

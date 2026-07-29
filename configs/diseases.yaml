@@ -1,0 +1,131 @@
+# MVP disease set (Context.md §23).
+#
+# Ten diseases spanning several therapeutic areas, so that leave-one-disease-out
+# evaluation actually measures generalization rather than memorisation of one
+# disease area.
+#
+# `efo_id` is deliberately null here. Run:
+#     uv run python scripts/resolve_diseases.py
+# to resolve each name against the Open Targets `disease` table and write the
+# IDs back into this file. Context.md §32.6 names identifier errors as a top
+# risk — IDs are looked up from the pinned release, not typed from memory.
+#
+# Validated by target_prioritization.config.DiseasesConfig.
+
+version: 1
+
+# Set by resolve_diseases.py.
+resolved_against_release: "26.06"
+resolved_at: "2026-07-29T19:26:10+00:00"
+
+diseases:
+  - key: parkinsons_disease
+    resolved_name: "Parkinson disease"
+    name: Parkinson's disease
+    efo_id: MONDO_0005180
+    category: neurodegenerative
+    relevant_tissues: [brain, substantia nigra, brain cortex]
+    is_cancer: false
+    milestone_1: true
+    notes: >
+      Milestone 1 disease (Context.md §36). Strong, well-characterised human
+      genetics (LRRK2, SNCA, GBA1, PRKN, PINK1) which makes it possible to
+      sanity-check the ranking by eye before trusting any metric.
+
+  - key: alzheimers_disease
+    resolved_name: "Alzheimer disease"
+    name: Alzheimer's disease
+    efo_id: MONDO_0004975
+    category: neurodegenerative
+    relevant_tissues: [brain, brain cortex, hippocampus]
+    is_cancer: false
+    notes: >
+      Second neurodegenerative disease. Its history of late-stage clinical
+      failures is a useful reminder that genetic support does not guarantee
+      therapeutic success (Project_info.md §44.1).
+
+  - key: type_2_diabetes
+    resolved_name: "type 2 diabetes mellitus"
+    name: type II diabetes mellitus
+    efo_id: MONDO_0005148
+    category: metabolic
+    relevant_tissues: [pancreas, liver, adipose tissue, muscle]
+    is_cancer: false
+    notes: Large GWAS sample sizes; strong common-variant evidence.
+
+  - key: rheumatoid_arthritis
+    resolved_name: "rheumatoid arthritis"
+    name: rheumatoid arthritis
+    efo_id: MONDO_0008383
+    category: autoimmune
+    relevant_tissues: [synovium, blood, spleen]
+    is_cancer: false
+    notes: Many approved biologics, so a comparatively rich positive label set.
+
+  - key: crohns_disease
+    resolved_name: "Crohn disease"
+    name: Crohn's disease
+    efo_id: MONDO_0005011
+    category: autoimmune
+    relevant_tissues: [terminal ileum, colon, small intestine, blood]
+    is_cancer: false
+    notes: >
+      Project_info.md §1.2 recommends this as its starting disease and gives
+      EFO_0000384. That ID is STALE: it does not exist in release 26.06 (zero
+      rows in the disease table, zero associations), because Open Targets
+      migrated Crohn's disease to MONDO_0005011, which carries 6,252 associated
+      targets. Hard-coding the EFO ID would have produced an empty result set
+      that looked like a modelling problem rather than an identifier problem —
+      which is exactly why Context.md §32.6 requires resolving IDs from the
+      pinned release instead of transcribing them.
+
+  - key: ulcerative_colitis
+    resolved_name: "ulcerative colitis"
+    name: ulcerative colitis
+    efo_id: MONDO_0005101
+    category: autoimmune
+    relevant_tissues: [colon, sigmoid colon, blood]
+    is_cancer: false
+    notes: >
+      Shares much biology with Crohn's disease. A useful check on whether
+      leave-one-disease-out evaluation is leaking through related diseases —
+      Context.md §16 warns about exactly this.
+
+  - key: psoriasis
+    resolved_name: "psoriasis"
+    name: psoriasis
+    efo_id: MONDO_0005083
+    category: autoimmune
+    relevant_tissues: [skin]
+    is_cancer: false
+    notes: Well-defined IL-17 / IL-23 axis with approved drugs against it.
+
+  - key: multiple_sclerosis
+    resolved_name: "multiple sclerosis"
+    name: multiple sclerosis
+    efo_id: MONDO_0005301
+    category: autoimmune
+    relevant_tissues: [brain, spinal cord, blood]
+    is_cancer: false
+    notes: Autoimmune disease with a neurological presentation.
+
+  - key: breast_carcinoma
+    resolved_name: "breast carcinoma"
+    name: breast carcinoma
+    efo_id: MONDO_0004989
+    category: oncology
+    relevant_tissues: [breast]
+    is_cancer: true
+    notes: >
+      Context.md §23 warns that cancer target biology and evidence structure
+      differ substantially from non-cancer disease — somatic mutation evidence
+      dominates. Analyse cancer and non-cancer results separately.
+
+  - key: non_small_cell_lung_carcinoma
+    resolved_name: "non-small cell lung carcinoma"
+    name: non-small cell lung carcinoma
+    efo_id: MONDO_0005233
+    category: oncology
+    relevant_tissues: [lung]
+    is_cancer: true
+    notes: Second oncology indication, with extensive targeted-therapy precedent.

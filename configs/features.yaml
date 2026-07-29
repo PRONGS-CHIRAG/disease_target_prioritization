@@ -1,0 +1,272 @@
+# Feature definitions and the leakage guard.
+#
+# Validated by target_prioritization.config.FeaturesConfig.
+#
+# Column naming convention, set by features/build_features.py:
+#   assoc_ds__<datasource>_score          per-datasource association score
+#   assoc_ds__<datasource>_evidence_count per-datasource evidence count
+#   assoc_overall__*                      Open Targets overall score (BASELINE ONLY)
+#   prio__<field>                         target_prioritisation columns
+#   genetics__* biology__* expr__*        derived feature groups
+#   net__* path__* drug__* safety__*
+#   missing__<group>                      1 when a whole evidence group is absent
+#
+# The denylist below globs against these names.
+
+version: 1
+
+# ---------------------------------------------------------------------------
+# Label (Context.md §15)
+# ---------------------------------------------------------------------------
+label:
+  name: clinically_advanced_target
+  source: open_targets/clinical_target
+  # clinical_target.maxClinicalStage is a string enum. These are the values
+  # actually present in release 26.06, with their row counts, mapped to the
+  # integer scale used by positive_min_clinical_stage. Anything not listed here
+  # is recorded as unmapped rather than silently coerced (Context.md §34).
+  clinical_stage_map:
+    APPROVAL: 4        # 7,384
+    PREAPPROVAL: 4     #     5
+    PHASE_3: 3         # 1,439
+    PHASE_2_3: 3       #   185
+    PHASE_2: 2         # 2,740
+    PHASE_1_2: 2       #   227
+    PHASE_1: 1         #   969
+    EARLY_PHASE_1: 1   #     5
+    IND: 0             #    12
+    PRECLINICAL: 0     #     6
+    UNKNOWN: null      #   335  -> excluded from both classes, not assumed negative
+  positive_min_clinical_stage: 3
+  negative_definition: >
+    Other targets associated with the same disease that lack approved or
+    clinically-advanced drug evidence FOR THAT DISEASE. These are hard
+    negatives drawn from the same disease biology, not random genes —
+    Context.md §32.5 notes that random negatives inflate apparent
+    performance because they are trivially separable.
+  output_path: data/processed/labels.parquet
+  notes: >
+    This label is imperfect. A target without an approved drug is not
+    necessarily a bad target; it may simply be understudied or recently
+    discovered. Model outputs must therefore be presented as prioritization
+    scores, never as ground truth (Context.md §15, §31).
+
+# ---------------------------------------------------------------------------
+# Leakage guard (Context.md §16, §32.1)
+#
+# The label above is built from clinical development evidence. Any feature
+# derived from that same evidence puts the answer into the question. Each rule
+# fails the build loudly rather than warning.
+#
+# `required: true` means the rule MUST match at least one real column. If an
+# upstream rename makes a rule match nothing, the build fails and a human
+# investigates — otherwise the guard would silently stop protecting anything.
+# ---------------------------------------------------------------------------
+leakage_guard:
+  enabled: true
+
+  denylist:
+    - id: ot_clinical_precedence_datasource
+      match: "assoc_ds__clinical_precedence*"
+      required: true
+      reason: >
+        THE critical rule. In release 26.06 the clinical drug evidence appears
+        under the datasource id `clinical_precedence`. Measured against the
+        downloaded release: all 107,593 of its (disease, target) pairs are also
+        clinical_target label pairs — a 100% overlap. The datasource is not
+        merely correlated with the label, it IS the label. Training on it would
+        make the model an identity function on its own target variable, the
+        second leakage example in Context.md §16.
+
+    - id: ot_chembl_datasource
+      match: "assoc_ds__chembl*"
+      required: false
+      reason: >
+        Legacy name. Older Open Targets releases exposed the same clinical
+        evidence under the datasource id `chembl`; 26.06 renamed it to
+        `clinical_precedence`. Kept so that pinning an older release does not
+        silently lose protection. Not required, because only one of the two
+        names exists in any given release, and for 26.06 it is
+        clinical_precedence.
+
+    - id: ot_overall_association_score
+      match: "assoc_overall__*"
+      required: false
+      reason: >
+        The Open Targets overall score aggregates every datasource including
+        the clinical evidence behind the label. Context.md §16 names using it
+        as both label and feature as the first example of leakage, and §32.1
+        warns that a model trained on it merely recreates the database score.
+        Kept out of the feature matrix; used only as an evaluation baseline.
+        Not required because the overall table is loaded separately and should
+        not normally reach the feature frame at all — if it does, this fires.
+
+    - id: prioritisation_max_clinical_stage
+      match: "prio__max_clinical_stage"
+      required: true
+      reason: >
+        target_prioritisation.maxClinicalStage is computed directly from a
+        target's clinical development status — the same fact the label
+        encodes. Easy to miss, because the rest of that table (pockets,
+        ligands, constraint, tissue specificity) is perfectly safe.
+
+    - id: known_drug_columns
+      match: "*known_drug*"
+      required: false
+      reason: >
+        Catch-all for any column derived from known-drug aggregates, whatever
+        the source table. Defensive: not expected to match in the MVP.
+
+    - id: label_columns
+      match: "label*"
+      required: false
+      reason: >
+        The label column and anything derived from it must not appear in the
+        feature matrix. Guards against an accidental merge of
+        labels.parquet into the feature frame.
+
+    - id: clinical_stage_columns
+      match: "*clinical_stage*"
+      required: false
+      reason: >
+        Any clinical-stage column from any source. Broader than
+        prioritisation_max_clinical_stage, which stays separate so its failure
+        is specifically diagnosable.
+
+# ---------------------------------------------------------------------------
+# Feature groups (Context.md §14, Project_info.md §17)
+#
+# `missing_indicator: true` adds a missing__<group> column. Context.md §32.3:
+# a target can look weak simply because nobody has studied it, and absence of
+# evidence must not be read as evidence of absence.
+# ---------------------------------------------------------------------------
+groups:
+
+  genetics:
+    description: >
+      Human genetic evidence — the strongest single predictor of clinical
+      success in the literature (Context.md §14.1).
+    source: open_targets/association_by_datasource_direct
+    missing_indicator: true
+    log_transform: false
+    features:
+      - assoc_ds__gwas_credible_sets_score
+      - assoc_ds__gene_burden_score
+      - assoc_ds__eva_score
+      - assoc_ds__genomics_england_score
+      - assoc_ds__gene2phenotype_score
+      - assoc_ds__clingen_score
+      - assoc_ds__orphanet_score
+      - assoc_ds__uniprot_variants_score
+      - genetics__n_datasources
+      - genetics__max_score
+
+  literature:
+    description: >
+      Publication-derived evidence. Log-transformed and deliberately kept as
+      ONE evidence type among several — Context.md §32.2 warns that
+      well-studied genes otherwise dominate the ranking through attention
+      rather than biology.
+    source: open_targets/association_by_datasource_direct
+    missing_indicator: true
+    log_transform: true
+    features:
+      - assoc_ds__europepmc_score
+      - assoc_ds__europepmc_evidence_count
+
+  pathways:
+    description: Reactome pathway membership and overlap (Context.md §14.3).
+    source: reactome
+    missing_indicator: true
+    log_transform: false
+    features:
+      - path__n_pathways
+      - path__n_disease_relevant_pathways
+      - path__overlap_with_known_disease_genes
+      - assoc_ds__reactome_score
+
+  expression:
+    description: GTEx tissue expression (Context.md §14.4).
+    source: gtex
+    missing_indicator: true
+    log_transform: true
+    features:
+      - expr__relevant_tissue_tpm
+      - expr__max_tpm
+      - expr__median_tpm
+      - expr__tissue_specificity
+      - expr__n_tissues_detected
+      - assoc_ds__expression_atlas_score
+
+  network:
+    description: STRING protein-interaction topology (Context.md §14.5).
+    source: string
+    missing_indicator: true
+    log_transform: false
+    features:
+      - net__degree
+      - net__weighted_degree
+      - net__pagerank
+      - net__betweenness
+      - net__n_disease_gene_neighbours
+      - net__min_distance_to_disease_gene
+      - net__mean_edge_confidence
+
+  druggability:
+    description: >
+      Tractability (Context.md §14.6). Note that these describe whether a
+      target CAN be drugged, not whether a drug exists for this disease —
+      that distinction is what keeps them out of the denylist.
+    source: open_targets/target_prioritisation
+    missing_indicator: true
+    log_transform: false
+    features:
+      - prio__has_pocket
+      - prio__has_ligand
+      - prio__has_small_molecule_binder
+      - prio__is_in_membrane
+      - prio__is_secreted
+      - prio__has_high_quality_chemical_probes
+      - prio__has_tep
+      - drug__target_class
+
+  safety:
+    description: >
+      Safety-related evidence (Context.md §14.7). Presented as risk signals,
+      never as toxicity predictions.
+    source: open_targets/target_prioritisation
+    missing_indicator: true
+    log_transform: false
+    features:
+      - prio__has_safety_event
+      - prio__genetic_constraint
+      - prio__mouse_ko_score
+      - prio__tissue_distribution
+      - prio__is_cancer_driver_gene
+      - safety__n_mouse_phenotypes
+
+  evidence_diversity:
+    description: >
+      Context.md §14.9: how many INDEPENDENT kinds of evidence agree may
+      matter more than how much evidence there is. A target supported by
+      genetics plus expression plus pathways is a different proposition from
+      one supported by a large pile of publications alone.
+    source: derived
+    missing_indicator: false
+    log_transform: false
+    features:
+      - diversity__n_evidence_types
+      - diversity__n_datasources
+      - diversity__pct_categories_present
+      - diversity__genetics_and_expression
+      - diversity__genetics_and_pathway
+
+  disease_context:
+    description: Disease-level context (Context.md §14.8).
+    source: open_targets/disease
+    missing_indicator: false
+    log_transform: false
+    features:
+      - disease__n_associated_targets
+      - disease__therapeutic_area
+      - disease__is_cancer

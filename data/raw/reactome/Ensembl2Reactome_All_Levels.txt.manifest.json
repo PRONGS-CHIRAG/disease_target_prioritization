@@ -1,0 +1,15 @@
+{
+  "bytes": 504035190,
+  "checksum_verified_against": null,
+  "dataset": "ensembl2reactome_all_levels",
+  "extra": {},
+  "fetched_at": "2026-07-29T18:47:34+00:00",
+  "license": "CC0 1.0",
+  "notes": null,
+  "path": "data/raw/reactome/Ensembl2Reactome_All_Levels.txt",
+  "release": null,
+  "sha256": "5af5bdcccc3a58cf8742a5013057cc87dea7ea20eefdc675d82f94b3016e11b3",
+  "source": "reactome",
+  "url": "https://reactome.org/download/current/Ensembl2Reactome_All_Levels.txt",
+  "version_pinned": false
+}

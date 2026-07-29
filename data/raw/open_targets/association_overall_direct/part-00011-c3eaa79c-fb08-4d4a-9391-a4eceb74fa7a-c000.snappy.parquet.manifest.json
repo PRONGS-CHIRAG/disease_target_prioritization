@@ -1,0 +1,15 @@
+{
+  "bytes": 77910852,
+  "checksum_verified_against": null,
+  "dataset": "association_overall_direct",
+  "extra": {},
+  "fetched_at": "2026-07-29T18:46:55+00:00",
+  "license": "CC0 1.0",
+  "notes": "NEVER a feature. It aggregates the same clinical evidence that defines the label, and training on it would reproduce the Open Targets score rather than learn anything (Context.md \u00a716, \u00a732.1).\n",
+  "path": "data/raw/open_targets/association_overall_direct/part-00011-c3eaa79c-fb08-4d4a-9391-a4eceb74fa7a-c000.snappy.parquet",
+  "release": "26.06",
+  "sha256": "86807e08d721d7ee6a540f20a4ceb5625b2f1d7237f02749ea476ea9e32cd5d6",
+  "source": "open_targets",
+  "url": "https://ftp.ebi.ac.uk/pub/databases/opentargets/platform/26.06/output/association_overall_direct/part-00011-c3eaa79c-fb08-4d4a-9391-a4eceb74fa7a-c000.snappy.parquet",
+  "version_pinned": true
+}

@@ -1,0 +1,15 @@
+{
+  "bytes": 16924714,
+  "checksum_verified_against": null,
+  "dataset": "hgnc_complete_set",
+  "extra": {},
+  "fetched_at": "2026-07-29T18:47:21+00:00",
+  "license": "Public domain (HGNC data is freely available)",
+  "notes": null,
+  "path": "data/raw/hgnc/hgnc_complete_set.txt",
+  "release": null,
+  "sha256": "84ddffcbdb7761b065c8c45e4fc7f626c3bf055b3ab054dbf039ac738a935170",
+  "source": "hgnc",
+  "url": "https://storage.googleapis.com/public-download-files/hgnc/tsv/tsv/hgnc_complete_set.txt",
+  "version_pinned": false
+}

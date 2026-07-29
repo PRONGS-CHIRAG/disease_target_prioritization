@@ -1,0 +1,152 @@
+# Model, split and evaluation configuration.
+#
+# Validated by target_prioritization.config.ModelConfig.
+
+version: 1
+
+# Context.md §33 requires the random seed to be recorded for every experiment.
+random_seed: 42
+
+# ---------------------------------------------------------------------------
+# Validation split (Context.md §19.4)
+#
+# Rows must NOT be split randomly. The same disease appearing in both train and
+# test lets the model memorise which targets belong to that disease rather than
+# learn what makes a target promising — Context.md §16 lists this explicitly.
+# ---------------------------------------------------------------------------
+split:
+  strategy: leave_one_disease_out
+  group_column: disease_id
+  n_folds: null
+  notes: >
+    With ten diseases, leave-one-disease-out gives ten folds and reports
+    per-disease metrics directly, which §19.3 requires anyway. Switch to
+    disease_group once the disease count grows, and to temporal once a
+    historical snapshot exists for §30.7.
+
+# ---------------------------------------------------------------------------
+# Rule-based baseline (Context.md §17.1)
+#
+# Weights are ILLUSTRATIVE, not scientifically validated. The value of this
+# baseline is that it is fully transparent: if it ranks known Parkinson's
+# targets near the top, the data pipeline is probably sound. Validated to
+# sum to 1.0 by ModelConfig.
+# ---------------------------------------------------------------------------
+baseline_weights:
+  genetics: 0.30
+  pathways: 0.20
+  expression: 0.15
+  network: 0.15
+  literature: 0.10
+  druggability: 0.10
+
+# ---------------------------------------------------------------------------
+# Models (Context.md §17)
+# Train in this order; do not skip ahead. A gradient-boosted model that cannot
+# beat the weighted baseline usually indicates a data problem, not a modelling
+# one.
+# ---------------------------------------------------------------------------
+models:
+  weighted_baseline:
+    enabled: true
+    type: rule_based
+
+  logistic_regression:
+    enabled: true
+    type: sklearn
+    params:
+      penalty: l2
+      C: 1.0
+      class_weight: balanced
+      max_iter: 2000
+      solver: lbfgs
+
+  random_forest:
+    enabled: true
+    type: sklearn
+    params:
+      n_estimators: 500
+      max_depth: null
+      min_samples_leaf: 5
+      class_weight: balanced_subsample
+      n_jobs: -1
+
+  xgboost:
+    enabled: true
+    type: xgboost
+    params:
+      objective: "binary:logistic"
+      eval_metric: aucpr
+      n_estimators: 600
+      max_depth: 5
+      learning_rate: 0.05
+      subsample: 0.8
+      colsample_bytree: 0.8
+      min_child_weight: 5
+      reg_lambda: 1.0
+      # Positives are rare; set from the training fold at fit time.
+      scale_pos_weight: null
+
+  lightgbm_ranker:
+    enabled: false
+    type: lightgbm
+    params:
+      objective: lambdarank
+      metric: ndcg
+      ndcg_eval_at: [5, 10, 20]
+      n_estimators: 600
+      learning_rate: 0.05
+      num_leaves: 31
+    notes: >
+      Context.md §17.6 — attempt learning-to-rank only after the classification
+      baseline is working and its ranking metrics are understood.
+
+# ---------------------------------------------------------------------------
+# Evaluation (Context.md §19)
+# ---------------------------------------------------------------------------
+evaluation:
+  # §19.3: compute per disease, then aggregate. A single global metric across
+  # all disease-target pairs hides the fact that a few data-rich diseases can
+  # carry the average.
+  aggregate_by: disease_id
+
+  ranking_metrics:
+    - precision_at_5
+    - precision_at_10
+    - recall_at_10
+    - recall_at_20
+    - map
+    - mrr
+    - ndcg_at_10
+    - ndcg_at_20
+    - hit_rate
+
+  classification_metrics:
+    - roc_auc
+    # §19.1: PR-AUC is the headline number here. Positives are rare, and
+    # ROC-AUC looks flattering under class imbalance.
+    - pr_auc
+    - precision
+    - recall
+    - f1
+    - brier_score
+
+  primary_metric: ndcg_at_10
+
+  baselines_for_comparison:
+    # Context.md §16: used only here, never as a training feature.
+    - open_targets_overall_score
+    - weighted_baseline
+    - random_ranking
+
+  # Context.md §32.2 — report metrics with and without the literature group, to
+  # measure how much of the performance is publication bias rather than biology.
+  ablations:
+    - name: no_literature
+      drop_groups: [literature]
+    - name: no_network
+      drop_groups: [network]
+    - name: genetics_only
+      keep_groups: [genetics]
+
+  output_dir: reports/evaluation

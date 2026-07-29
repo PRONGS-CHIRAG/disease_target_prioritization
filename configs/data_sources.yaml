@@ -1,0 +1,308 @@
+# Data sources for the disease-target prioritization pipeline.
+#
+# Every URL below was verified live. `approx_mb` values for core datasets are
+# MEASURED from the 26.06 download, not estimated, so the --dry-run total is
+# accurate; the full-profile figures are still estimates from directory listings.
+#
+# Profiles:
+#   core  ~3.0 GB  everything the MVP needs (Context.md §11)
+#   full  ~15 GB   adds bulk evidence and expression tables for later phases
+#
+# Validated by target_prioritization.config.DataSourcesConfig.
+
+version: 1
+
+profiles:
+  - core
+  - full
+
+sources:
+
+  # ---------------------------------------------------------------------------
+  # Open Targets Platform — the primary source (Context.md §10.1, §11).
+  # Partitioned snappy parquet under <base_url>/<dataset>/.
+  # ---------------------------------------------------------------------------
+  open_targets:
+    kind: parquet_dir
+    homepage: https://platform.opentargets.org
+    license: CC0 1.0
+    citation: "Ochoa et al., Nucleic Acids Research (2023). Open Targets Platform."
+    release: "26.06"
+    release_pinned: true
+    base_url: https://ftp.ebi.ac.uk/pub/databases/opentargets/platform/{release}/output
+    # The manifest itself: ~37k lines of "<sha1>  ./path" covering every file in
+    # the release. The downloader fetches "<this url>.sha1" as well — that is the
+    # checksum OF the manifest, used to confirm the manifest before trusting it.
+    # Do not point this at the .sha1 file directly; it holds one line.
+    checksum_manifest_url: https://ftp.ebi.ac.uk/pub/databases/opentargets/platform/{release}/release_data_integrity
+
+    datasets:
+      - name: target
+        profiles: [core, full]
+        approx_mb: 85.8
+        role: >
+          Gene/protein metadata keyed by Ensembl gene ID. Carries proteinIds
+          (UniProt + ENSP, needed for the STRING join), dbXrefs, tractability,
+          safetyLiabilities, constraint, pathways, go, targetClass and
+          obsoleteSymbols. The backbone of identifier normalization.
+
+      - name: disease
+        profiles: [core, full]
+        approx_mb: 6.8
+        role: >
+          Disease ontology: EFO/MONDO id, name, synonyms, ancestors,
+          descendants and therapeuticAreas. Used to resolve the diseases in
+          diseases.yaml and to distinguish direct from indirect associations.
+
+      - name: association_by_datasource_direct
+        profiles: [core, full]
+        approx_mb: 1139.4
+        role: >
+          PRIMARY FEATURE SOURCE. Long format, one row per
+          (diseaseId, targetId, aggregationValue): associationScore and
+          evidenceCount per datasource. Pivoted to wide during feature build.
+        leakage_note: >
+          Rows whose aggregationValue is the ChEMBL / clinical-precedence
+          datasource encode the MVP label itself and are removed by the
+          leakage guard in features.yaml.
+
+      - name: association_overall_direct
+        profiles: [core, full]
+        approx_mb: 1105.3
+        role: >
+          Open Targets' own overall association score. Used ONLY as a
+          comparison baseline in evaluation.
+        leakage_note: >
+          NEVER a feature. It aggregates the same clinical evidence that
+          defines the label, and training on it would reproduce the Open
+          Targets score rather than learn anything (Context.md §16, §32.1).
+
+      - name: target_prioritisation
+        profiles: [core, full]
+        approx_mb: 1.8
+        role: >
+          Per-target tractability and safety flags: isInMembrane, isSecreted,
+          hasPocket, hasLigand, hasSmallMoleculeBinder, geneticConstraint,
+          mouseKOScore, tissueSpecificity, tissueDistribution.
+        leakage_note: >
+          The maxClinicalStage column is derived from clinical development
+          status and is denylisted. The remaining columns are safe.
+
+      - name: clinical_target
+        profiles: [core, full]
+        approx_mb: 2.7
+        role: >
+          LABEL SOURCE. One row per drug x target with the diseases it has
+          been in clinical development for and maxClinicalStage. Written to
+          data/processed/labels.parquet, never merged into features.
+
+      - name: clinical_indication
+        profiles: [core, full]
+        approx_mb: 4.7
+        role: >
+          Drug x disease with maxClinicalStage. Cross-checks clinical_target
+          and supports disease-level drug counts.
+
+      - name: clinical_report
+        profiles: [core, full]
+        approx_mb: 71.0
+        role: >
+          Trial-level detail: phase, status, why-stopped, year. Supports the
+          temporal-validation extension (Context.md §30.7) and lets the UI
+          cite specific trials.
+
+      - name: drug_molecule
+        profiles: [core, full]
+        approx_mb: 14.0
+        role: ChEMBL drug metadata — name, type, approval status, indications.
+
+      - name: drug_mechanism_of_action
+        profiles: [core, full]
+        approx_mb: 0.6
+        role: >
+          Drug to target mapping with actionType (inhibitor, agonist, ...).
+          Supplies direction of effect for explanations.
+
+      - name: reactome
+        profiles: [core, full]
+        approx_mb: 0.2
+        role: >
+          Reactome pathway hierarchy as Open Targets ingests it. Kept
+          alongside the direct Reactome download as a cross-check.
+
+      - name: go
+        profiles: [core, full]
+        approx_mb: 2.7
+        role: Gene Ontology term definitions (Context.md §10.3).
+
+      - name: mouse_phenotype
+        profiles: [core, full]
+        approx_mb: 8.9
+        role: >
+          Mouse knockout phenotypes — a safety-related feature
+          (Context.md §14.7).
+
+      # ---- full profile only -------------------------------------------------
+      - name: baseline_expression
+        profiles: [full]
+        approx_mb: 2769
+        role: >
+          Per-tissue baseline expression. Excluded from core: GTEx v10 median
+          TPM covers the same ground in 8.8 MB instead of 2.7 GB.
+
+      - name: evidence_europepmc
+        profiles: [full]
+        approx_mb: 9248
+        role: >
+          Individual literature evidence records. Excluded from core: the
+          europepmc column of association_by_datasource_direct already carries
+          the aggregate signal.
+
+      - name: evidence_gwas_credible_sets
+        profiles: [full]
+        approx_mb: 280
+        role: GWAS credible-set evidence for fine-mapping features (§14.1).
+
+      - name: target_essentiality
+        profiles: [full]
+        approx_mb: 256
+        role: DepMap-derived gene essentiality — a safety feature (§14.7).
+
+      - name: interaction
+        profiles: [full]
+        approx_mb: 131
+        role: >
+          Open Targets' integrated protein interactions. Superseded by STRING
+          for the MVP; kept for cross-source comparison.
+
+  # ---------------------------------------------------------------------------
+  # HGNC — canonical human gene symbols (Context.md §10.8)
+  # ---------------------------------------------------------------------------
+  hgnc:
+    kind: files
+    homepage: https://www.genenames.org
+    license: "Public domain (HGNC data is freely available)"
+    release_pinned: false
+    datasets:
+      - name: hgnc_complete_set
+        profiles: [core, full]
+        approx_mb: 16.1
+        filename: hgnc_complete_set.txt
+        url: https://storage.googleapis.com/public-download-files/hgnc/tsv/tsv/hgnc_complete_set.txt
+        role: >
+          Approved symbols with previous symbols, aliases and cross-references
+          to Ensembl, Entrez and UniProt. The alias-resolution table.
+
+  # ---------------------------------------------------------------------------
+  # Reactome — curated pathways (Context.md §10.4)
+  # NOTE: the URL path is /download/current/ with no version in it, so these
+  # files are NOT version-pinned. The fetch timestamp in each manifest is the
+  # only version anchor (Context.md §32.7).
+  # ---------------------------------------------------------------------------
+  reactome:
+    kind: files
+    homepage: https://reactome.org
+    license: CC0 1.0
+    citation: "Milacic et al., Nucleic Acids Research (2024). The Reactome Pathway Knowledgebase."
+    release_pinned: false
+    datasets:
+      - name: ensembl2reactome_all_levels
+        profiles: [core, full]
+        approx_mb: 480.7
+        filename: Ensembl2Reactome_All_Levels.txt
+        url: https://reactome.org/download/current/Ensembl2Reactome_All_Levels.txt
+        role: >
+          Ensembl gene to pathway mapping at all hierarchy levels. Multi-species
+          and unversioned Ensembl IDs — must be filtered to Homo sapiens.
+
+      - name: reactome_pathways
+        profiles: [core, full]
+        approx_mb: 1.5
+        filename: ReactomePathways.txt
+        url: https://reactome.org/download/current/ReactomePathways.txt
+        role: Pathway id, display name and species.
+
+      - name: reactome_pathways_relation
+        profiles: [core, full]
+        approx_mb: 0.6
+        filename: ReactomePathwaysRelation.txt
+        url: https://reactome.org/download/current/ReactomePathwaysRelation.txt
+        role: Parent/child pathway edges, for hierarchy-aware pathway features.
+
+  # ---------------------------------------------------------------------------
+  # GTEx — tissue expression (Context.md §10.6)
+  # ---------------------------------------------------------------------------
+  gtex:
+    kind: files
+    homepage: https://gtexportal.org
+    license: "Open access (GTEx Portal terms)"
+    citation: "GTEx Consortium, Science (2020)."
+    release: v10
+    release_pinned: true
+    datasets:
+      - name: gene_median_tpm
+        profiles: [core, full]
+        approx_mb: 8.4
+        filename: GTEx_Analysis_v10_RNASeQCv2.4.2_gene_median_tpm.gct.gz
+        url: https://storage.googleapis.com/adult-gtex/bulk-gex/v10/rna-seq/GTEx_Analysis_v10_RNASeQCv2.4.2_gene_median_tpm.gct.gz
+        role: >
+          Median TPM per gene per tissue. GCT format: two header lines before
+          the column names. Gene IDs carry version suffixes (ENSG...  .7) that
+          must be stripped before joining.
+
+  # ---------------------------------------------------------------------------
+  # STRING — protein-protein interactions (Context.md §10.5)
+  # Keyed on ENSP, not ENSG — the aliases file bridges the two.
+  # ---------------------------------------------------------------------------
+  string:
+    kind: files
+    homepage: https://string-db.org
+    license: CC BY 4.0
+    citation: "Szklarczyk et al., Nucleic Acids Research (2023). STRING v12."
+    release: v12.0
+    release_pinned: true
+    datasets:
+      - name: protein_links
+        profiles: [core, full]
+        approx_mb: 79.3
+        filename: 9606.protein.links.v12.0.txt.gz
+        url: https://stringdb-downloads.org/download/protein.links.v12.0/9606.protein.links.v12.0.txt.gz
+        role: >
+          Human PPI edges with a combined confidence score (0-1000). Context.md
+          §10.5 requires retaining the score so low- and high-confidence edges
+          stay distinguishable.
+
+      - name: protein_info
+        profiles: [core, full]
+        approx_mb: 1.9
+        filename: 9606.protein.info.v12.0.txt.gz
+        url: https://stringdb-downloads.org/download/protein.info.v12.0/9606.protein.info.v12.0.txt.gz
+        role: STRING protein id, preferred name and description.
+
+      - name: protein_aliases
+        profiles: [core, full]
+        approx_mb: 18.9
+        filename: 9606.protein.aliases.v12.0.txt.gz
+        url: https://stringdb-downloads.org/download/protein.aliases.v12.0/9606.protein.aliases.v12.0.txt.gz
+        role: >
+          ENSP to external identifier map, including Ensembl gene IDs. The
+          bridge that makes STRING joinable on our internal key.
+
+  # ---------------------------------------------------------------------------
+  # Human Protein Atlas — post-MVP (Project_info.md §14.3)
+  # ---------------------------------------------------------------------------
+  hpa:
+    kind: files
+    homepage: https://www.proteinatlas.org
+    license: CC BY-SA 4.0
+    citation: "Uhlen et al., Science (2015). Tissue-based map of the human proteome."
+    release_pinned: false
+    datasets:
+      - name: proteinatlas
+        profiles: [full]
+        approx_mb: 8
+        filename: proteinatlas.tsv.zip
+        url: https://www.proteinatlas.org/download/proteinatlas.tsv.zip
+        role: >
+          RNA and protein expression, subcellular location, pathology data.
+          Complements GTEx with protein-level evidence.

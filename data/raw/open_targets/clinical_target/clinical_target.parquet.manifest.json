@@ -1,0 +1,15 @@
+{
+  "bytes": 2834958,
+  "checksum_verified_against": null,
+  "dataset": "clinical_target",
+  "extra": {},
+  "fetched_at": "2026-07-29T18:46:33+00:00",
+  "license": "CC0 1.0",
+  "notes": null,
+  "path": "data/raw/open_targets/clinical_target/clinical_target.parquet",
+  "release": "26.06",
+  "sha256": "7a223c7f933cf4624aaf3eda23b8a3a1a7078a5471ebe70098c9bc3a0418bad5",
+  "source": "open_targets",
+  "url": "https://ftp.ebi.ac.uk/pub/databases/opentargets/platform/26.06/output/clinical_target/clinical_target.parquet",
+  "version_pinned": true
+}

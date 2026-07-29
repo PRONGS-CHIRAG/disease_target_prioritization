@@ -1,0 +1,15 @@
+{
+  "bytes": 29725904,
+  "checksum_verified_against": null,
+  "dataset": "target",
+  "extra": {},
+  "fetched_at": "2026-07-29T18:42:53+00:00",
+  "license": "CC0 1.0",
+  "notes": null,
+  "path": "data/raw/open_targets/target/part-00001-810593a9-06e5-4201-a034-4d82bcbe81e7-c000.snappy.parquet",
+  "release": "26.06",
+  "sha256": "e2a0bf1db8d4d31cdcc90cea56cec19c068c7a6077f37d3e75dedc7b44a19bbf",
+  "source": "open_targets",
+  "url": "https://ftp.ebi.ac.uk/pub/databases/opentargets/platform/26.06/output/target/part-00001-810593a9-06e5-4201-a034-4d82bcbe81e7-c000.snappy.parquet",
+  "version_pinned": true
+}

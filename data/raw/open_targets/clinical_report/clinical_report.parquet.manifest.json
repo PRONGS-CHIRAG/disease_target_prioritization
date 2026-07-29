@@ -1,0 +1,15 @@
+{
+  "bytes": 74437645,
+  "checksum_verified_against": null,
+  "dataset": "clinical_report",
+  "extra": {},
+  "fetched_at": "2026-07-29T18:47:13+00:00",
+  "license": "CC0 1.0",
+  "notes": null,
+  "path": "data/raw/open_targets/clinical_report/clinical_report.parquet",
+  "release": "26.06",
+  "sha256": "92b06403af38d7a1c4f6c50581bec90f85a9216428ca1333f60b7e66ccab2ab4",
+  "source": "open_targets",
+  "url": "https://ftp.ebi.ac.uk/pub/databases/opentargets/platform/26.06/output/clinical_report/clinical_report.parquet",
+  "version_pinned": true
+}

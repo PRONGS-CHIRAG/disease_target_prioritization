@@ -1,0 +1,15 @@
+{
+  "bytes": 8846936,
+  "checksum_verified_against": null,
+  "dataset": "gene_median_tpm",
+  "extra": {},
+  "fetched_at": "2026-07-29T18:47:26+00:00",
+  "license": "Open access (GTEx Portal terms)",
+  "notes": null,
+  "path": "data/raw/gtex/GTEx_Analysis_v10_RNASeQCv2.4.2_gene_median_tpm.gct.gz",
+  "release": "v10",
+  "sha256": "b951fd32aae5cad48435026e07225860596a411a75efd0519e00f330b7a98294",
+  "source": "gtex",
+  "url": "https://storage.googleapis.com/adult-gtex/bulk-gex/v10/rna-seq/GTEx_Analysis_v10_RNASeQCv2.4.2_gene_median_tpm.gct.gz",
+  "version_pinned": true
+}

@@ -1,0 +1,15 @@
+{
+  "bytes": 1592393,
+  "checksum_verified_against": null,
+  "dataset": "reactome_pathways",
+  "extra": {},
+  "fetched_at": "2026-07-29T18:47:07+00:00",
+  "license": "CC0 1.0",
+  "notes": null,
+  "path": "data/raw/reactome/ReactomePathways.txt",
+  "release": null,
+  "sha256": "f6d7a2bf89b5bcfe0250a0bc7f51bff94641447911712b8ff129f5b55e52df3a",
+  "source": "reactome",
+  "url": "https://reactome.org/download/current/ReactomePathways.txt",
+  "version_pinned": false
+}

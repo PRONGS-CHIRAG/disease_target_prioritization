@@ -1,0 +1,15 @@
+{
+  "bytes": 83189845,
+  "checksum_verified_against": null,
+  "dataset": "association_by_datasource_direct",
+  "extra": {},
+  "fetched_at": "2026-07-29T18:45:05+00:00",
+  "license": "CC0 1.0",
+  "notes": "Rows whose aggregationValue is the ChEMBL / clinical-precedence datasource encode the MVP label itself and are removed by the leakage guard in features.yaml.\n",
+  "path": "data/raw/open_targets/association_by_datasource_direct/part-00010-02673c35-4621-4b9d-b289-f04a44e86cbc-c000.snappy.parquet",
+  "release": "26.06",
+  "sha256": "b95d0db9334fa79f6d24178d0b075d76b2e5551d0313b94cb597437239c8efb4",
+  "source": "open_targets",
+  "url": "https://ftp.ebi.ac.uk/pub/databases/opentargets/platform/26.06/output/association_by_datasource_direct/part-00010-02673c35-4621-4b9d-b289-f04a44e86cbc-c000.snappy.parquet",
+  "version_pinned": true
+}

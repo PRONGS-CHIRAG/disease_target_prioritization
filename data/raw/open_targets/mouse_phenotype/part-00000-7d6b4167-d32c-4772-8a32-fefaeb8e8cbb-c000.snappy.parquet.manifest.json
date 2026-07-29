@@ -1,0 +1,15 @@
+{
+  "bytes": 9294368,
+  "checksum_verified_against": null,
+  "dataset": "mouse_phenotype",
+  "extra": {},
+  "fetched_at": "2026-07-29T18:47:00+00:00",
+  "license": "CC0 1.0",
+  "notes": null,
+  "path": "data/raw/open_targets/mouse_phenotype/part-00000-7d6b4167-d32c-4772-8a32-fefaeb8e8cbb-c000.snappy.parquet",
+  "release": "26.06",
+  "sha256": "650311e50e566ed854ec99ab7b0ac9d1f64dafae01ba9578e53e08b098b01690",
+  "source": "open_targets",
+  "url": "https://ftp.ebi.ac.uk/pub/databases/opentargets/platform/26.06/output/mouse_phenotype/part-00000-7d6b4167-d32c-4772-8a32-fefaeb8e8cbb-c000.snappy.parquet",
+  "version_pinned": true
+}
