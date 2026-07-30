@@ -1,20 +1,34 @@
 # ---------------------------------------------------------------------------
-# Data — raw data is immutable and re-downloadable; never commit it.
-# Manifests ARE committed: they are the provenance record (Context.md §33).
+# Data — raw data is immutable and re-downloadable; never commit it (3 GB).
+#
+# Provenance IS committed: manifests and sidecars are the reproducibility
+# record (Context.md §33), and they are what makes a result checkable without
+# the bytes it came from.
 # ---------------------------------------------------------------------------
 data/**
 !data/**/
 !data/**/.gitkeep
 !data/**/*.manifest.json
 !data/raw/_manifest.jsonl
+!data/processed/*.provenance.json
 
-# Models & reports (artifacts, not source)
+# Processed tables are derived and regenerable, EXCEPT the Milestone 1
+# deliverable, which Context.md §36 names explicitly as an output. At 400 KB it
+# costs little, and it lets a reader check the report's numbers without a 3 GB
+# download.
+!data/processed/parkinsons_targets.parquet
+
+# Models (artifacts, not source)
 models/trained/**
 !models/trained/.gitkeep
 models/metadata/**
 !models/metadata/.gitkeep
+
+# Report figures are committed: reports/*.md embeds them, and an ignored image
+# renders as a broken link on GitHub. Regenerate with scripts/run_milestone1.py.
 reports/figures/**
 !reports/figures/.gitkeep
+!reports/figures/*.png
 
 # Python
 __pycache__/

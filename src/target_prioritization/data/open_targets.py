@@ -26,6 +26,11 @@ __all__ = [
     "DiseaseMatch",
     "connect",
     "dataset_glob",
+    "load_target_metadata",
+    "load_target_prioritisation",
+    "load_targets_for_disease",
+    "pivot_evidence",
+    "release_tag",
     "resolve_disease",
     "resolve_diseases",
 ]
@@ -297,6 +302,110 @@ def load_targets_for_disease(
     finally:
         if owns:
             con.close()
+
+
+def load_target_metadata(
+    target_ids: list[str] | None = None,
+    con: duckdb.DuckDBPyConnection | None = None,
+) -> pl.DataFrame:
+    """Gene symbol, name and biotype for targets.
+
+    Args:
+        target_ids: Restrict to these Ensembl gene IDs. None loads all 78,691.
+
+    Returns:
+        ``target_id``, ``gene_symbol``, ``gene_name``, ``biotype``.
+    """
+    owns = con is None
+    con = con or connect()
+    try:
+        glob = dataset_glob("target")
+        query = f"""
+            SELECT id AS target_id,
+                   approvedSymbol AS gene_symbol,
+                   approvedName AS gene_name,
+                   biotype
+            FROM read_parquet('{glob}')
+        """
+        if target_ids:
+            con.register("wanted_targets", pl.DataFrame({"target_id": target_ids}).to_arrow())
+            query += " WHERE target_id IN (SELECT target_id FROM wanted_targets)"
+        frame = pl.from_arrow(con.execute(query).arrow())
+        assert isinstance(frame, pl.DataFrame)
+        return frame
+    finally:
+        if owns:
+            con.close()
+
+
+def load_target_prioritisation(
+    columns: list[str],
+    target_ids: list[str] | None = None,
+    con: duckdb.DuckDBPyConnection | None = None,
+) -> pl.DataFrame:
+    """Selected columns from ``target_prioritisation``.
+
+    Note the scale: these are signed values where negative indicates a
+    liability (``hasSafetyEvent`` is only ever -1 or null, never +1), and the
+    binary flags are 0/1. They are NOT all probabilities.
+
+    Args:
+        columns: Column names to read, e.g. ``["hasPocket", "hasLigand"]``.
+        target_ids: Restrict to these Ensembl gene IDs.
+    """
+    owns = con is None
+    con = con or connect()
+    try:
+        glob = dataset_glob("target_prioritisation")
+        available = {
+            row[0]
+            for row in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{glob}')").fetchall()
+        }
+        if missing := [c for c in columns if c not in available]:
+            raise KeyError(
+                f"target_prioritisation has no column(s) {missing}. Available: {sorted(available)}"
+            )
+
+        selected = ", ".join(f'"{c}"' for c in columns)
+        query = f"SELECT targetId AS target_id, {selected} FROM read_parquet('{glob}')"
+        if target_ids:
+            con.register("wanted_prio", pl.DataFrame({"target_id": target_ids}).to_arrow())
+            query += " WHERE targetId IN (SELECT target_id FROM wanted_prio)"
+        frame = pl.from_arrow(con.execute(query).arrow())
+        assert isinstance(frame, pl.DataFrame)
+        return frame
+    finally:
+        if owns:
+            con.close()
+
+
+def pivot_evidence(evidence: pl.DataFrame) -> pl.DataFrame:
+    """Pivot long-format evidence to one row per target.
+
+    Args:
+        evidence: Long frame from :func:`load_targets_for_disease`, with any
+            denylisted datasources ALREADY removed. Filtering must happen
+            before this call so leaked columns are never even constructed
+            (Context.md §16).
+
+    Returns:
+        ``target_id`` plus ``assoc_ds__<datasource>_score`` and
+        ``assoc_ds__<datasource>_evidence_count`` per datasource. Absent
+        evidence stays null rather than becoming zero — Context.md §32.3, a
+        null means "not studied" while a zero means "studied and found absent".
+    """
+    if evidence.is_empty():
+        return pl.DataFrame({"target_id": []}, schema={"target_id": pl.String})
+
+    scores = evidence.pivot(
+        on="datasource", index="target_id", values="score", aggregate_function="max"
+    ).rename(lambda c: c if c == "target_id" else f"assoc_ds__{c}_score")
+
+    counts = evidence.pivot(
+        on="datasource", index="target_id", values="evidence_count", aggregate_function="sum"
+    ).rename(lambda c: c if c == "target_id" else f"assoc_ds__{c}_evidence_count")
+
+    return scores.join(counts, on="target_id", how="left")
 
 
 def read_parquet_dataset(dataset: str, columns: list[str] | None = None) -> pl.LazyFrame:

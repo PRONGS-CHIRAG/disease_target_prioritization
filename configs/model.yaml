@@ -31,6 +31,11 @@ split:
 # baseline is that it is fully transparent: if it ranks known Parkinson's
 # targets near the top, the data pipeline is probably sound. Validated to
 # sum to 1.0 by ModelConfig.
+#
+# This is the §17.1 target formula. It is NOT yet reachable: the pathways,
+# expression and network terms need Reactome, GTEx and STRING, which Context.md
+# §28 Step 9 schedules after the baseline works. Use milestone_1_weights until
+# those are integrated.
 # ---------------------------------------------------------------------------
 baseline_weights:
   genetics: 0.30
@@ -39,6 +44,43 @@ baseline_weights:
   network: 0.15
   literature: 0.10
   druggability: 0.10
+
+# ---------------------------------------------------------------------------
+# Milestone 1 baseline (Context.md §36) — Open Targets only.
+#
+# Differs from baseline_weights above because §36 restricts Milestone 1 to Open
+# Targets, and three of the §17.1 dimensions cannot be built from it:
+#   - pathways:   the OT `reactome` datasource has ZERO rows for Parkinson's
+#   - expression: OT carries expression_atlas association evidence, not tissue
+#                 TPM, so there is no disease-relevant-tissue term without GTEx
+#   - network:    needs STRING
+#
+# Two dimensions replace them, both justified by the data rather than by taste:
+#
+#   evidence_diversity (0.20) — Context.md §14.9 argues diversity may beat
+#     volume, and for Parkinson's it plainly does: the five established genes
+#     (LRRK2 7, GBA1 6, SNCA 6, PARK7 5, PRKN 5) hold the most distinct evidence
+#     types of any candidate.
+#
+#   functional (0.15) — CRISPR screens, mouse knockouts and expression atlas
+#     evidence, which OT does carry for this disease.
+#
+# Literature is held at 0.15 deliberately. 71% of the 8,727 candidates
+# (6,196) have literature evidence and nothing else, and europepmc sits at
+# 0.98-0.99 for every well-known gene, so it is simultaneously the most common
+# and least discriminating signal (Context.md §32.2).
+# ---------------------------------------------------------------------------
+milestone_1_weights:
+  genetics: 0.40
+  evidence_diversity: 0.20
+  functional: 0.15
+  literature: 0.15
+  druggability: 0.10
+
+# Number of distinct evidence types at which the diversity term saturates.
+# 4 is chosen because only 16 of 8,727 candidates exceed it — above that the
+# term would stop discriminating and start rewarding a handful of outliers.
+evidence_diversity_saturation: 4
 
 # ---------------------------------------------------------------------------
 # Models (Context.md §17)

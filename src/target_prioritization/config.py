@@ -330,11 +330,69 @@ class FeatureGroup(_Base):
     log_transform: bool = False
 
 
+class EvidenceDimension(_Base):
+    """A scored dimension and the Open Targets datasources feeding it."""
+
+    description: str
+    datasources: list[str] = Field(min_length=1)
+
+
 class FeaturesConfig(_Base):
     version: int
     label: LabelConfig
     leakage_guard: LeakageGuardConfig
     groups: dict[str, FeatureGroup]
+    evidence_dimensions: dict[str, EvidenceDimension] = Field(default_factory=dict)
+    druggability_flags: list[str] = Field(default_factory=list)
+    safety_columns: list[str] = Field(default_factory=list)
+
+    # Dimensions whose name starts with "_" document what was considered and
+    # excluded; they are not scored.
+    @property
+    def scored_dimensions(self) -> dict[str, EvidenceDimension]:
+        return {k: v for k, v in self.evidence_dimensions.items() if not k.startswith("_")}
+
+    def datasources_for(self, dimension: str) -> list[str]:
+        return list(self.evidence_dimensions[dimension].datasources)
+
+    @model_validator(mode="after")
+    def _check_dimensions_disjoint(self) -> FeaturesConfig:
+        """A datasource must feed at most one scored dimension.
+
+        Double-counting would silently inflate any target holding that
+        evidence, and the weights would no longer mean what they say.
+        """
+        seen: dict[str, str] = {}
+        for name, dimension in self.evidence_dimensions.items():
+            if name.startswith("_"):
+                continue
+            for datasource in dimension.datasources:
+                if datasource in seen:
+                    raise ValueError(
+                        f"Datasource {datasource!r} appears in both {seen[datasource]!r} "
+                        f"and {name!r}; scored dimensions must be disjoint."
+                    )
+                seen[datasource] = name
+        return self
+
+    @model_validator(mode="after")
+    def _check_label_datasource_unscored(self) -> FeaturesConfig:
+        """No scored dimension may contain a denylisted datasource.
+
+        The leakage guard catches this later at the column level; catching it
+        here means a bad config fails at load rather than after a pipeline run.
+        """
+        for name, dimension in self.evidence_dimensions.items():
+            if name.startswith("_"):
+                continue
+            for datasource in dimension.datasources:
+                column = f"assoc_ds__{datasource}_score"
+                if hits := self.leakage_guard.find_violations([column]):
+                    raise ValueError(
+                        f"Dimension {name!r} includes datasource {datasource!r}, which the "
+                        f"leakage guard denylists via rule(s) {sorted(hits)}."
+                    )
+        return self
 
 
 # ---------------------------------------------------------------------------
@@ -354,14 +412,28 @@ class ModelConfig(_Base):
     random_seed: int
     split: SplitConfig
     baseline_weights: dict[str, float]
+    # Open Targets-only weights used for Milestone 1 (Context.md §36).
+    milestone_1_weights: dict[str, float] = Field(default_factory=dict)
+    evidence_diversity_saturation: int = Field(default=4, ge=1)
     models: dict[str, dict[str, Any]]
     evaluation: dict[str, Any]
 
     @model_validator(mode="after")
     def _check_weights(self) -> ModelConfig:
-        total = sum(self.baseline_weights.values())
-        if abs(total - 1.0) > 1e-6:
-            raise ValueError(f"baseline_weights must sum to 1.0, got {total:.6f}")
+        """Every weight set must sum to 1.0.
+
+        Otherwise the score silently changes scale and stops being comparable
+        across weight profiles or across runs.
+        """
+        for name in ("baseline_weights", "milestone_1_weights"):
+            weights: dict[str, float] = getattr(self, name)
+            if not weights:
+                continue
+            total = sum(weights.values())
+            if abs(total - 1.0) > 1e-6:
+                raise ValueError(f"{name} must sum to 1.0, got {total:.6f}")
+            if negative := {k: v for k, v in weights.items() if v < 0}:
+                raise ValueError(f"{name} has negative weight(s): {negative}")
         return self
 
 

@@ -1,0 +1,35 @@
+{
+  "ablation": "literature dropped, remaining weights renormalized",
+  "dataset_version": "26.06",
+  "datasources_dropped_as_label": [
+    "clinical_precedence"
+  ],
+  "disease_id": "MONDO_0005180",
+  "disease_key": "parkinsons_disease",
+  "disease_name": "Parkinson's disease",
+  "evidence_diversity_saturation": 4,
+  "extraction_date": "2026-07-30",
+  "known_gene_ranks": {
+    "GBA1": 3,
+    "LRRK2": 1,
+    "PINK1": 15,
+    "PRKN": 19,
+    "SNCA": 6
+  },
+  "n_candidates": 8727,
+  "n_dropped_label_only": 37,
+  "n_scored": 8690,
+  "n_unresolved_symbols": 0,
+  "scored_dimensions": [
+    "genetics",
+    "functional",
+    "literature"
+  ],
+  "weights": {
+    "druggability": 0.1,
+    "evidence_diversity": 0.2,
+    "functional": 0.15,
+    "genetics": 0.4,
+    "literature": 0.15
+  }
+}

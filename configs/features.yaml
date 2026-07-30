@@ -134,6 +134,91 @@ leakage_guard:
         is specifically diagnosable.
 
 # ---------------------------------------------------------------------------
+# Milestone 1 evidence dimensions (Context.md §36) — Open Targets only.
+#
+# Maps each scored dimension to the Open Targets datasource IDs that feed it, as
+# they appear in association_by_datasource_direct.aggregationValue. Kept in
+# config so the grouping is reviewable by someone who knows the biology but not
+# the code.
+#
+# Within a dimension the score is the MAX across its datasources: a target is as
+# good as its best evidence of that kind. Mean would punish a gene with one
+# strong GWAS signal for lacking the six other genetics datasources, which is a
+# statement about study coverage rather than about the gene.
+#
+# `clinical_precedence` is absent from every dimension ON PURPOSE — it is the
+# label (see leakage_guard above). The denylist is what enforces that; this
+# comment records the intent.
+# ---------------------------------------------------------------------------
+evidence_dimensions:
+
+  genetics:
+    description: >
+      Human genetic association — common variant, rare variant and curated
+      Mendelian evidence (Context.md §14.1).
+    datasources:
+      - gwas_credible_sets
+      - eva
+      - gene_burden
+      - genomics_england
+      - clingen
+      - uniprot_variants
+      - gene2phenotype
+      - orphanet
+
+  functional:
+    description: >
+      Experimental functional evidence — CRISPR screens, mouse knockout
+      phenotypes and differential expression.
+    datasources:
+      - crispr_screen
+      - impc
+      - expression_atlas
+      - crispr
+
+  literature:
+    description: >
+      Co-mention evidence mined from publications. Weighted low and ablated
+      separately: it is the most common and least discriminating signal
+      (Context.md §32.2).
+    datasources:
+      - europepmc
+      - uniprot_literature
+
+  # Datasources present in the release but deliberately unmapped. Listed so a
+  # reader can tell "considered and excluded" from "overlooked". These are
+  # cancer-specific and contribute nothing for Parkinson's; they will matter
+  # when the oncology diseases enter in Milestone 2.
+  _unmapped:
+    description: Not used by the Milestone 1 score.
+    datasources:
+      - cancer_gene_census
+      - cancer_biomarkers
+      - intogen
+      - eva_somatic
+      - reactome          # zero rows for Parkinson's in release 26.06
+      - clinical_precedence  # the label — never a feature
+
+# Tractability flags from target_prioritisation used for the druggability
+# dimension. Restricted to the three with full coverage (18,869 targets each).
+# hasTEP (41 targets) and hasHighQualityChemicalProbes (929) are excluded from
+# the SCORE because at that coverage the flag encodes "has anyone looked" more
+# than "is this druggable"; both are still carried as displayed columns.
+druggability_flags:
+  - hasPocket
+  - hasLigand
+  - hasSmallMoleculeBinder
+
+# Reported alongside the score, never added to it. Context.md §14.7 forbids
+# presenting these as toxicity predictions, and the §17.1 formula has no safety
+# term. Values are on a signed scale where negative indicates a liability.
+safety_columns:
+  - hasSafetyEvent
+  - geneticConstraint
+  - mouseKOScore
+  - isCancerDriverGene
+
+# ---------------------------------------------------------------------------
 # Feature groups (Context.md §14, Project_info.md §17)
 #
 # `missing_indicator: true` adds a missing__<group> column. Context.md §32.3:
