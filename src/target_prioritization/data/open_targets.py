@@ -26,6 +26,7 @@ __all__ = [
     "DiseaseMatch",
     "connect",
     "dataset_glob",
+    "load_overall_association_scores",
     "load_target_metadata",
     "load_target_prioritisation",
     "load_targets_for_disease",
@@ -296,6 +297,41 @@ def load_targets_for_disease(
         ).arrow()
         # from_arrow returns DataFrame | Series; an Arrow Table is always the
         # former, but the annotation is a union.
+        frame = pl.from_arrow(table)
+        assert isinstance(frame, pl.DataFrame)
+        return frame
+    finally:
+        if owns:
+            con.close()
+
+
+def load_overall_association_scores(
+    disease_id: str,
+    con: duckdb.DuckDBPyConnection | None = None,
+) -> pl.DataFrame:
+    """Open Targets' overall association score per target, for *disease_id*.
+
+    Evaluation baseline ONLY (Context.md §16, §32.1) — never a feature. The
+    overall score aggregates every datasource including the clinical
+    evidence behind the label; training on it would make a model that merely
+    reproduces the database score. The output column is named
+    ``assoc_overall__score`` deliberately: it is exactly the pattern
+    ``ot_overall_association_score`` denylists in ``configs/features.yaml``,
+    so an accidental join of this into a feature frame is caught by the
+    guard rather than silently trained on.
+    """
+    owns = con is None
+    con = con or connect()
+    try:
+        glob = dataset_glob("association_overall_direct")
+        table = con.execute(
+            f"""
+            SELECT targetId AS target_id, associationScore AS "assoc_overall__score"
+            FROM read_parquet('{glob}')
+            WHERE diseaseId = ? AND aggregationType = 'overall'
+            """,
+            [disease_id],
+        ).arrow()
         frame = pl.from_arrow(table)
         assert isinstance(frame, pl.DataFrame)
         return frame

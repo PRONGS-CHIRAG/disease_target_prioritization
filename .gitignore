@@ -12,15 +12,25 @@ data/**
 !data/raw/_manifest.jsonl
 !data/processed/*.provenance.json
 
-# Processed tables are derived and regenerable, EXCEPT the Milestone 1
-# deliverable, which Context.md §36 names explicitly as an output. At 400 KB it
-# costs little, and it lets a reader check the report's numbers without a 3 GB
-# download.
+# Processed tables are derived and regenerable, EXCEPT the deliverables
+# Context.md §36, §37 and §21 name explicitly as outputs. At a few MB each
+# this costs little, and it lets a reader check each report's numbers
+# without a 3 GB download.
 !data/processed/parkinsons_targets.parquet
+!data/processed/disease_target_features.parquet
+!data/processed/labels.parquet
+!data/processed/app_scores.parquet
 
-# Models (artifacts, not source)
+# Models (artifacts, not source) EXCEPT the Milestone 2 deliverable
+# (Context.md §37) and the Milestone 3 held-out fold models (Context.md §21,
+# milestone3_plan.md §2.1) — persisted so the app's XGBoost score matches
+# what baseline_metrics.json's leave-one-disease-out numbers actually
+# measured, rather than the in-sample all-disease refit.
 models/trained/**
 !models/trained/.gitkeep
+!models/trained/xgboost_baseline.json
+!models/trained/folds/
+!models/trained/folds/*.json
 models/metadata/**
 !models/metadata/.gitkeep
 

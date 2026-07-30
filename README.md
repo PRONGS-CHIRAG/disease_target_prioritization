@@ -17,20 +17,26 @@ Specification: [Context.md](Context.md) and [Project_info.md](Project_info.md).
 | --- | --- |
 | Data acquisition & repository scaffolding | **Done** |
 | Milestone 1 — Parkinson's rule-based baseline (Context §36) | **Done** — [implementation record](milestone1.md) |
-| Milestone 2 — multi-disease ML baseline (Context §37) | Not started |
-| Milestone 3 — Streamlit app (Context §21) | Not started |
+| Milestone 2 — multi-disease ML baseline (Context §37) | **Done** — [implementation record](milestone2.md), [full report](reports/evaluation/baseline_report.md) |
+| Milestone 3 — Streamlit app (Context §21) | **Done** — [implementation record](milestone3.md) |
 
 Implemented and tested: configuration, path and provenance utilities, the dataset
 downloader, identifier normalization, the leakage guard, the Open Targets readers,
 the genetics and druggability feature groups, the weighted baseline with
-per-dimension explanations and ablation, and report and figure generation.
-169 tests.
+per-dimension explanations and ablation, report and figure generation, multi-disease
+label construction, the multi-disease feature table, leave-one-disease-out
+evaluation with ranking metrics, logistic regression / random forest / XGBoost
+training, non-learned comparison baselines, SHAP explanations, held-out
+per-disease fold models, the disease search / target ranking / evidence-card
+services, and the three-page Streamlit app.
+373 tests.
 
 Still stubs, and deliberately so: `features/pathways.py`, `expression.py` and
 `network.py` need Reactome, GTEx and STRING, which Context §28 Step 9 schedules
-*after* the baseline works. `models/train.py`, `predict.py`, `evaluate.py`,
-`explain.py`, `services/` and `api/` are typed contracts awaiting Milestones 2–3,
-and `app/` currently renders its limitations sidebar and nothing else.
+*after* the baseline works — the app marks every element that depends on them
+as "not yet integrated" rather than showing a blank or a zero. `api/` is a
+typed contract still awaiting its implementation (§28 Step 11 specifies
+Streamlit, not FastAPI, for the MVP).
 
 ## Milestone 1 — the Parkinson's baseline
 
@@ -114,12 +120,137 @@ merely well-published is a judgement no script should make.
 Full implementation record, including the three silent bugs this milestone
 surfaced: [milestone1.md](milestone1.md).
 
+## Milestone 2 — the multi-disease ML baseline, and its headline caveat
+
+Expands Milestone 1 to all ten configured diseases (89,666 candidate rows,
+2,233 positives at 2.49% prevalence), trains logistic regression, random
+forest and XGBoost under leave-one-disease-out, and compares them against
+four non-learned baselines — including one, `target_popularity`, built
+specifically to test a hypothesis this milestone's own label measurement
+raised before any model was trained: **78–98% of every disease's positives
+are also positives in at least one other configured disease** (each shared
+target counted once per disease; counted once overall instead, it's 65% —
+see [milestone2.md §1](milestone2.md)), so a model
+could rank well purely by learning "this is a druggable, well-precedented
+target" without any disease-specific signal at all.
+
+That is exactly what happened:
+
+| Method | NDCG@10 (primary) | NDCG@10 (novel-only) |
+| --- | ---: | ---: |
+| Target popularity | **0.873** | 0.000 |
+| OT overall score | 0.752 | 0.093 |
+| XGBoost | 0.696 | 0.009 |
+| Random forest | 0.529 | 0.000 |
+| Logistic regression | 0.501 | 0.067 |
+| Weighted baseline | 0.288 | 0.050 |
+| Random | 0.031 | 0.000 |
+
+![Primary vs. novel-only NDCG@10 for every method](reports/figures/milestone2_popularity_comparison.png)
+
+`target_popularity` — a baseline with no learning at all, just a count of
+how many *other* diseases a target is a positive in — outranks every
+trained model, including XGBoost. Restricting evaluation to positives that
+don't recur across diseases (`novel_only_labels`) collapses every method's
+NDCG@10 toward zero; XGBoost falls from 0.696 to 0.009. On the evidence
+measured here, the ML models learned mostly cross-disease target popularity,
+not disease-specific biology — reported as the milestone's headline
+finding, not smoothed into a footnote.
+
+The acceptance check that does gate the pipeline (every method beats
+`random_ranking` on NDCG@10 in ≥ 9/10 diseases) passed for all six
+non-random methods. A second candidate check — XGBoost ≥ logistic
+regression ≥ weighted baseline — was deliberately *not* made an exit-code
+condition, because enforcing it would have hidden the result above.
+
+| Path | What it is |
+| --- | --- |
+| [reports/evaluation/baseline_report.md](reports/evaluation/baseline_report.md) | Full findings: per-disease breakdown, literature ablation, limitations |
+| [data/processed/disease_target_features.parquet](data/processed/) | Multi-disease feature table, 89,666 rows |
+| [data/processed/labels.parquet](data/processed/) | Labels + per-disease provenance |
+| [models/trained/xgboost_baseline.json](models/trained/) | Final XGBoost model, refit on all 10 diseases |
+| [reports/evaluation/baseline_metrics.json](reports/evaluation/baseline_metrics.json) | Every metric, every method, per-disease and aggregate |
+| [docs/model_card.md](docs/model_card.md) | Model card for the XGBoost deliverable |
+
+Reproduce with `uv run python scripts/train_model.py` (data + labels +
+training) and `uv run python scripts/evaluate_model.py` (adds the figure and
+report) — both exit non-zero if the acceptance check fails. Determinism
+verified by diffing `baseline_metrics.json` across two full runs
+(byte-identical), the same standard Milestone 1 held itself to.
+
+Full implementation record, including the label-construction gaps found
+while building this and the two silent bugs the real 10-fold run surfaced:
+[milestone2.md](milestone2.md).
+
+## Milestone 3 — the Streamlit app, and why it shows two scores
+
+A disease search, a ranked target table with the buildable §21/§38 filters,
+and a target evidence page combining the weighted baseline's exact
+per-dimension breakdown with the held-out XGBoost model's live SHAP
+explanation. Built directly on Milestone 2's headline finding rather than
+around it: **the app shows the weighted-baseline score by default and the
+XGBoost score alongside it, never one in place of the other**, because
+Milestone 2 measured that XGBoost's ranking quality is mostly cross-disease
+target popularity (novel-only NDCG@10 0.009) while the weighted baseline is
+weaker overall (0.288) but fully transparent. Picking one would have
+required either hiding the caveat or hiding the stronger model.
+
+Three design decisions this milestone had to make, each because Milestone 2
+made the naive version wrong or impossible:
+
+**The XGBoost score shown is scored by the model that never saw that
+disease.** `models/trained/xgboost_baseline.json` — Milestone 2's deliverable
+— is refit on all ten diseases, so its predictions on any of them are
+in-sample. The app instead persists all ten leave-one-disease-out fold models
+(`models/trained/folds/`) and scores each disease with the one that excluded
+it, so the number on screen matches what `baseline_metrics.json`'s
+leave-one-disease-out numbers actually measured. Verified two ways in
+`scripts/check_app.py`: the displayed score matches a fresh score from that
+disease's fold model, *and* differs from what the all-disease refit would
+have produced.
+
+**Roughly a third of Context §21/§38's specified interface cannot be built
+yet.** Pathway, expression and network evidence need Reactome, GTEx and
+STRING — downloaded and validated (Milestone 1) but not yet integrated into
+the feature pipeline (Context §28 Step 9). Rather than a blank cell inviting
+"assessed and found absent," every such element renders an explicit
+"not yet integrated" placeholder, and the two filters that would need them
+(relevant tissue, target family) raise rather than silently doing nothing.
+
+**A label-derived column must never reach a model, and the app is a new path
+to the same parquet that could let one leak in.** The clinical-trial and
+existing-drug fields Context §21/§38 ask for displayed *are* the training
+label. `services/target_ranking.py` scores on feature columns only and joins
+the display columns in strictly afterward — never before — and
+`scripts/check_app.py` asserts this by patching the scoring call and
+recording exactly what it was handed, on every run, against the real
+pipeline. The two per-target things label evidence *is* good for — an
+existing-drug summary and a "positive for N other configured diseases"
+badge, the concrete per-target form of Milestone 2's popularity finding — are
+shown on the evidence page, explicitly labelled as the training label rather
+than as ranking evidence.
+
+```bash
+uv run python scripts/build_app_data.py   # after scripts/train_model.py
+uv run python scripts/check_app.py        # acceptance check, exits non-zero on failure
+uv run python scripts/run_app.py          # or: make app
+```
+
+Full implementation record, including a pyarrow/mimalloc segfault only the
+real running app surfaced and a missing dataclass field no unit test caught:
+[milestone3.md](milestone3.md).
+
 ## Quick start
 
 ```bash
 uv venv --python 3.11
 uv pip install -e ".[dev]"
 ```
+
+> **macOS: XGBoost and LightGBM need OpenMP.** `libxgboost.dylib` and
+> `liblightgbm.dylib` both link against `libomp`, which Homebrew's Python
+> does not ship. `brew install libomp` before Milestone 2 training —
+> `import xgboost` raises `XGBoostError` without it.
 
 > **`uv run` currently fails on this project.** Its automatic sync re-resolves the
 > dependency set and picks a numba that will not build on Python 3.11. Add
@@ -158,8 +289,41 @@ than assumed — ties break on score, then gene symbol, then `target_id`, which 
 the only one of the three that is unique. The single field that legitimately
 changes between runs is `extraction_date`, which is the point of it.
 
+Then Milestone 2 — around 90 seconds, ten leave-one-disease-out folds each
+training logistic regression, random forest and XGBoost:
+
+```bash
+# Multi-disease features + labels + LODO training + metrics.
+# Exits non-zero if the acceptance check fails
+uv run python scripts/train_model.py
+
+# Adds the figure and reports/evaluation/baseline_report.md
+uv run python scripts/evaluate_model.py
+```
+
+Determinism verified the same way — `reports/evaluation/baseline_metrics.json`
+diffed byte-identical across two full runs, after rounding metric values to
+10 decimal places to absorb ~1-part-in-10¹⁶ floating-point noise from
+`sklearn.metrics`' internal summation order under multi-threaded BLAS.
+
+Then Milestone 3 — the app-facing precompute, the acceptance check, and the
+app itself:
+
+```bash
+# Held-out scores, popularity badges, disease/target/drug metadata
+uv run python scripts/build_app_data.py
+
+# Six checks against the real pipeline. Exits non-zero if any fails
+uv run python scripts/check_app.py
+
+# Launches the app (checks required artifacts exist first)
+uv run python scripts/run_app.py
+# or: make app
+```
+
 `make help` lists shortcuts for the setup, download and validation steps above. The
-two Milestone 1 scripts have no Make target.
+Milestone 1 and Milestone 2 scripts have no Make target; `make app` runs
+`scripts/run_app.py`.
 
 ## Data
 
@@ -253,16 +417,21 @@ configs/     data_sources, diseases, features (+ leakage denylist), model
 data/        raw (immutable) → interim → processed
 src/target_prioritization/
   config.py     pydantic-validated config loading
-  data/         download, identifiers, per-source readers
+  data/         download, identifiers, per-source readers, labels.py (multi-disease labels)
   features/     feature groups + the leakage guard
-  models/       baseline, train, predict, evaluate, explain
+  models/       baseline, train, predict, evaluate, explain, baselines (non-learned)
   milestone1.py Milestone 1 orchestration, acceptance check, ablation
-  reporting.py  report generation + the hand-written gene notes
-  viz.py        evidence-breakdown figures
-  services/     disease search, ranking, evidence cards
-  api/          FastAPI
-app/         Streamlit
-scripts/     download_data, resolve_diseases, validate_data, build_dataset, run_milestone1, …
+  milestone2.py Milestone 2 orchestration, LODO loop, acceptance check, leakage probe
+  app_data.py   Milestone 3 app-facing precompute (held-out scores, popularity badge, metadata)
+  app_checks.py Milestone 3 acceptance checks (leakage boundary, fold routing, placeholders)
+  reporting.py  Milestone 1 report generation + the hand-written gene notes
+  reporting2.py Milestone 2 report generation
+  viz.py        evidence-breakdown + popularity-comparison figures + evidence radar
+  services/     disease_search, target_ranking (score-first-join-second), evidence_summary
+  api/          FastAPI — typed contract, not yet implemented (§28 Step 11 specifies Streamlit)
+app/         Streamlit — streamlit_app.py, common.py (shared state/caching), pages/
+scripts/     download_data, resolve_diseases, validate_data, build_dataset, run_milestone1,
+             train_model, evaluate_model, build_app_data, check_app, run_app, …
 reports/     generated reports + figures
 docs/        data dictionary, model card, dataset card, limitations, glossary
 ```

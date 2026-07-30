@@ -1,0 +1,407 @@
+{
+  "diseases": {
+    "alzheimers_disease": {
+      "dataset_version": "26.06",
+      "datasources_dropped_as_label": [
+        "clinical_precedence"
+      ],
+      "disease_id": "MONDO_0004975",
+      "disease_key": "alzheimers_disease",
+      "disease_name": "Alzheimer's disease",
+      "evidence_diversity_saturation": 4,
+      "extraction_date": "2026-07-30",
+      "n_candidates": 13289,
+      "n_dropped_label_only": 14,
+      "n_scored": 13275,
+      "n_unresolved_symbols": 0,
+      "scored_dimensions": [
+        "genetics",
+        "functional",
+        "literature"
+      ]
+    },
+    "breast_carcinoma": {
+      "dataset_version": "26.06",
+      "datasources_dropped_as_label": [
+        "clinical_precedence"
+      ],
+      "disease_id": "MONDO_0004989",
+      "disease_key": "breast_carcinoma",
+      "disease_name": "breast carcinoma",
+      "evidence_diversity_saturation": 4,
+      "extraction_date": "2026-07-30",
+      "n_candidates": 15586,
+      "n_dropped_label_only": 8,
+      "n_scored": 15578,
+      "n_unresolved_symbols": 0,
+      "scored_dimensions": [
+        "genetics",
+        "functional",
+        "literature"
+      ]
+    },
+    "crohns_disease": {
+      "dataset_version": "26.06",
+      "datasources_dropped_as_label": [
+        "clinical_precedence"
+      ],
+      "disease_id": "MONDO_0005011",
+      "disease_key": "crohns_disease",
+      "disease_name": "Crohn's disease",
+      "evidence_diversity_saturation": 4,
+      "extraction_date": "2026-07-30",
+      "n_candidates": 6252,
+      "n_dropped_label_only": 40,
+      "n_scored": 6212,
+      "n_unresolved_symbols": 0,
+      "scored_dimensions": [
+        "genetics",
+        "functional",
+        "literature"
+      ]
+    },
+    "multiple_sclerosis": {
+      "dataset_version": "26.06",
+      "datasources_dropped_as_label": [
+        "clinical_precedence"
+      ],
+      "disease_id": "MONDO_0005301",
+      "disease_key": "multiple_sclerosis",
+      "disease_name": "multiple sclerosis",
+      "evidence_diversity_saturation": 4,
+      "extraction_date": "2026-07-30",
+      "n_candidates": 4340,
+      "n_dropped_label_only": 170,
+      "n_scored": 4170,
+      "n_unresolved_symbols": 0,
+      "scored_dimensions": [
+        "genetics",
+        "functional",
+        "literature"
+      ]
+    },
+    "non_small_cell_lung_carcinoma": {
+      "dataset_version": "26.06",
+      "datasources_dropped_as_label": [
+        "clinical_precedence"
+      ],
+      "disease_id": "MONDO_0005233",
+      "disease_key": "non_small_cell_lung_carcinoma",
+      "disease_name": "non-small cell lung carcinoma",
+      "evidence_diversity_saturation": 4,
+      "extraction_date": "2026-07-30",
+      "n_candidates": 10918,
+      "n_dropped_label_only": 109,
+      "n_scored": 10809,
+      "n_unresolved_symbols": 0,
+      "scored_dimensions": [
+        "genetics",
+        "functional",
+        "literature"
+      ]
+    },
+    "parkinsons_disease": {
+      "dataset_version": "26.06",
+      "datasources_dropped_as_label": [
+        "clinical_precedence"
+      ],
+      "disease_id": "MONDO_0005180",
+      "disease_key": "parkinsons_disease",
+      "disease_name": "Parkinson's disease",
+      "evidence_diversity_saturation": 4,
+      "extraction_date": "2026-07-30",
+      "n_candidates": 8727,
+      "n_dropped_label_only": 37,
+      "n_scored": 8690,
+      "n_unresolved_symbols": 0,
+      "scored_dimensions": [
+        "genetics",
+        "functional",
+        "literature"
+      ]
+    },
+    "psoriasis": {
+      "dataset_version": "26.06",
+      "datasources_dropped_as_label": [
+        "clinical_precedence"
+      ],
+      "disease_id": "MONDO_0005083",
+      "disease_key": "psoriasis",
+      "disease_name": "psoriasis",
+      "evidence_diversity_saturation": 4,
+      "extraction_date": "2026-07-30",
+      "n_candidates": 6963,
+      "n_dropped_label_only": 67,
+      "n_scored": 6896,
+      "n_unresolved_symbols": 0,
+      "scored_dimensions": [
+        "genetics",
+        "functional",
+        "literature"
+      ]
+    },
+    "rheumatoid_arthritis": {
+      "dataset_version": "26.06",
+      "datasources_dropped_as_label": [
+        "clinical_precedence"
+      ],
+      "disease_id": "MONDO_0008383",
+      "disease_key": "rheumatoid_arthritis",
+      "disease_name": "rheumatoid arthritis",
+      "evidence_diversity_saturation": 4,
+      "extraction_date": "2026-07-30",
+      "n_candidates": 7226,
+      "n_dropped_label_only": 87,
+      "n_scored": 7139,
+      "n_unresolved_symbols": 0,
+      "scored_dimensions": [
+        "genetics",
+        "functional",
+        "literature"
+      ]
+    },
+    "type_2_diabetes": {
+      "dataset_version": "26.06",
+      "datasources_dropped_as_label": [
+        "clinical_precedence"
+      ],
+      "disease_id": "MONDO_0005148",
+      "disease_key": "type_2_diabetes",
+      "disease_name": "type II diabetes mellitus",
+      "evidence_diversity_saturation": 4,
+      "extraction_date": "2026-07-30",
+      "n_candidates": 9906,
+      "n_dropped_label_only": 55,
+      "n_scored": 9851,
+      "n_unresolved_symbols": 0,
+      "scored_dimensions": [
+        "genetics",
+        "functional",
+        "literature"
+      ]
+    },
+    "ulcerative_colitis": {
+      "dataset_version": "26.06",
+      "datasources_dropped_as_label": [
+        "clinical_precedence"
+      ],
+      "disease_id": "MONDO_0005101",
+      "disease_key": "ulcerative_colitis",
+      "disease_name": "ulcerative colitis",
+      "evidence_diversity_saturation": 4,
+      "extraction_date": "2026-07-30",
+      "n_candidates": 7154,
+      "n_dropped_label_only": 108,
+      "n_scored": 7046,
+      "n_unresolved_symbols": 0,
+      "scored_dimensions": [
+        "genetics",
+        "functional",
+        "literature"
+      ]
+    }
+  },
+  "n_diseases": 10,
+  "n_feature_columns": 54,
+  "n_total_rows": 89666,
+  "sparse_columns_by_disease": {
+    "MONDO_0004975": [
+      "assoc_ds__cancer_biomarkers_evidence_count",
+      "assoc_ds__cancer_biomarkers_score",
+      "assoc_ds__cancer_gene_census_evidence_count",
+      "assoc_ds__cancer_gene_census_score",
+      "assoc_ds__clingen_evidence_count",
+      "assoc_ds__clingen_score",
+      "assoc_ds__crispr_evidence_count",
+      "assoc_ds__crispr_score",
+      "assoc_ds__eva_somatic_evidence_count",
+      "assoc_ds__eva_somatic_score",
+      "assoc_ds__gene2phenotype_evidence_count",
+      "assoc_ds__gene2phenotype_score",
+      "assoc_ds__intogen_evidence_count",
+      "assoc_ds__intogen_score"
+    ],
+    "MONDO_0004989": [
+      "assoc_ds__cancer_biomarkers_evidence_count",
+      "assoc_ds__cancer_biomarkers_score",
+      "assoc_ds__clingen_evidence_count",
+      "assoc_ds__clingen_score",
+      "assoc_ds__crispr_screen_evidence_count",
+      "assoc_ds__crispr_screen_score",
+      "assoc_ds__gene2phenotype_evidence_count",
+      "assoc_ds__gene2phenotype_score",
+      "assoc_ds__intogen_evidence_count",
+      "assoc_ds__intogen_score"
+    ],
+    "MONDO_0005011": [
+      "assoc_ds__cancer_biomarkers_evidence_count",
+      "assoc_ds__cancer_biomarkers_score",
+      "assoc_ds__clingen_evidence_count",
+      "assoc_ds__clingen_score",
+      "assoc_ds__crispr_evidence_count",
+      "assoc_ds__crispr_score",
+      "assoc_ds__crispr_screen_evidence_count",
+      "assoc_ds__crispr_screen_score",
+      "assoc_ds__eva_somatic_evidence_count",
+      "assoc_ds__eva_somatic_score",
+      "assoc_ds__gene2phenotype_evidence_count",
+      "assoc_ds__gene2phenotype_score",
+      "assoc_ds__impc_evidence_count",
+      "assoc_ds__impc_score",
+      "assoc_ds__intogen_evidence_count",
+      "assoc_ds__intogen_score",
+      "assoc_ds__reactome_evidence_count",
+      "assoc_ds__reactome_score",
+      "assoc_ds__uniprot_literature_evidence_count",
+      "assoc_ds__uniprot_literature_score",
+      "assoc_ds__uniprot_variants_evidence_count",
+      "assoc_ds__uniprot_variants_score"
+    ],
+    "MONDO_0005083": [
+      "assoc_ds__cancer_biomarkers_evidence_count",
+      "assoc_ds__cancer_biomarkers_score",
+      "assoc_ds__cancer_gene_census_evidence_count",
+      "assoc_ds__cancer_gene_census_score",
+      "assoc_ds__clingen_evidence_count",
+      "assoc_ds__clingen_score",
+      "assoc_ds__crispr_evidence_count",
+      "assoc_ds__crispr_score",
+      "assoc_ds__crispr_screen_evidence_count",
+      "assoc_ds__crispr_screen_score",
+      "assoc_ds__eva_somatic_evidence_count",
+      "assoc_ds__eva_somatic_score",
+      "assoc_ds__gene2phenotype_evidence_count",
+      "assoc_ds__gene2phenotype_score",
+      "assoc_ds__genomics_england_evidence_count",
+      "assoc_ds__genomics_england_score",
+      "assoc_ds__intogen_evidence_count",
+      "assoc_ds__intogen_score",
+      "assoc_ds__reactome_evidence_count",
+      "assoc_ds__reactome_score",
+      "assoc_ds__uniprot_variants_evidence_count",
+      "assoc_ds__uniprot_variants_score"
+    ],
+    "MONDO_0005101": [
+      "assoc_ds__cancer_biomarkers_evidence_count",
+      "assoc_ds__cancer_biomarkers_score",
+      "assoc_ds__clingen_evidence_count",
+      "assoc_ds__clingen_score",
+      "assoc_ds__crispr_evidence_count",
+      "assoc_ds__crispr_score",
+      "assoc_ds__crispr_screen_evidence_count",
+      "assoc_ds__crispr_screen_score",
+      "assoc_ds__eva_evidence_count",
+      "assoc_ds__eva_score",
+      "assoc_ds__eva_somatic_evidence_count",
+      "assoc_ds__eva_somatic_score",
+      "assoc_ds__gene2phenotype_evidence_count",
+      "assoc_ds__gene2phenotype_score",
+      "assoc_ds__impc_evidence_count",
+      "assoc_ds__impc_score",
+      "assoc_ds__intogen_evidence_count",
+      "assoc_ds__intogen_score",
+      "assoc_ds__reactome_evidence_count",
+      "assoc_ds__reactome_score",
+      "assoc_ds__uniprot_literature_evidence_count",
+      "assoc_ds__uniprot_literature_score",
+      "assoc_ds__uniprot_variants_evidence_count",
+      "assoc_ds__uniprot_variants_score"
+    ],
+    "MONDO_0005148": [
+      "assoc_ds__cancer_biomarkers_evidence_count",
+      "assoc_ds__cancer_biomarkers_score",
+      "assoc_ds__cancer_gene_census_evidence_count",
+      "assoc_ds__cancer_gene_census_score",
+      "assoc_ds__clingen_evidence_count",
+      "assoc_ds__clingen_score",
+      "assoc_ds__crispr_evidence_count",
+      "assoc_ds__crispr_score",
+      "assoc_ds__crispr_screen_evidence_count",
+      "assoc_ds__crispr_screen_score",
+      "assoc_ds__gene2phenotype_evidence_count",
+      "assoc_ds__gene2phenotype_score",
+      "assoc_ds__intogen_evidence_count",
+      "assoc_ds__intogen_score",
+      "assoc_ds__reactome_evidence_count",
+      "assoc_ds__reactome_score"
+    ],
+    "MONDO_0005180": [
+      "assoc_ds__cancer_biomarkers_evidence_count",
+      "assoc_ds__cancer_biomarkers_score",
+      "assoc_ds__cancer_gene_census_evidence_count",
+      "assoc_ds__cancer_gene_census_score",
+      "assoc_ds__crispr_evidence_count",
+      "assoc_ds__crispr_score",
+      "assoc_ds__eva_somatic_evidence_count",
+      "assoc_ds__eva_somatic_score",
+      "assoc_ds__intogen_evidence_count",
+      "assoc_ds__intogen_score",
+      "assoc_ds__reactome_evidence_count",
+      "assoc_ds__reactome_score"
+    ],
+    "MONDO_0005233": [
+      "assoc_ds__crispr_screen_evidence_count",
+      "assoc_ds__crispr_screen_score",
+      "assoc_ds__gene2phenotype_evidence_count",
+      "assoc_ds__gene2phenotype_score",
+      "assoc_ds__gene_burden_evidence_count",
+      "assoc_ds__gene_burden_score",
+      "assoc_ds__genomics_england_evidence_count",
+      "assoc_ds__genomics_england_score",
+      "assoc_ds__impc_evidence_count",
+      "assoc_ds__impc_score",
+      "assoc_ds__uniprot_literature_evidence_count",
+      "assoc_ds__uniprot_literature_score",
+      "assoc_ds__uniprot_variants_evidence_count",
+      "assoc_ds__uniprot_variants_score"
+    ],
+    "MONDO_0005301": [
+      "assoc_ds__cancer_biomarkers_evidence_count",
+      "assoc_ds__cancer_biomarkers_score",
+      "assoc_ds__cancer_gene_census_evidence_count",
+      "assoc_ds__cancer_gene_census_score",
+      "assoc_ds__clingen_evidence_count",
+      "assoc_ds__clingen_score",
+      "assoc_ds__crispr_evidence_count",
+      "assoc_ds__crispr_score",
+      "assoc_ds__eva_somatic_evidence_count",
+      "assoc_ds__eva_somatic_score",
+      "assoc_ds__gene2phenotype_evidence_count",
+      "assoc_ds__gene2phenotype_score",
+      "assoc_ds__genomics_england_evidence_count",
+      "assoc_ds__genomics_england_score",
+      "assoc_ds__intogen_evidence_count",
+      "assoc_ds__intogen_score",
+      "assoc_ds__reactome_evidence_count",
+      "assoc_ds__reactome_score",
+      "assoc_ds__uniprot_variants_evidence_count",
+      "assoc_ds__uniprot_variants_score"
+    ],
+    "MONDO_0008383": [
+      "assoc_ds__cancer_biomarkers_evidence_count",
+      "assoc_ds__cancer_biomarkers_score",
+      "assoc_ds__cancer_gene_census_evidence_count",
+      "assoc_ds__cancer_gene_census_score",
+      "assoc_ds__clingen_evidence_count",
+      "assoc_ds__clingen_score",
+      "assoc_ds__crispr_evidence_count",
+      "assoc_ds__crispr_score",
+      "assoc_ds__crispr_screen_evidence_count",
+      "assoc_ds__crispr_screen_score",
+      "assoc_ds__eva_somatic_evidence_count",
+      "assoc_ds__eva_somatic_score",
+      "assoc_ds__gene2phenotype_evidence_count",
+      "assoc_ds__gene2phenotype_score",
+      "assoc_ds__gene_burden_evidence_count",
+      "assoc_ds__gene_burden_score",
+      "assoc_ds__genomics_england_evidence_count",
+      "assoc_ds__genomics_england_score",
+      "assoc_ds__intogen_evidence_count",
+      "assoc_ds__intogen_score",
+      "assoc_ds__reactome_evidence_count",
+      "assoc_ds__reactome_score",
+      "assoc_ds__uniprot_variants_evidence_count",
+      "assoc_ds__uniprot_variants_score"
+    ]
+  }
+}

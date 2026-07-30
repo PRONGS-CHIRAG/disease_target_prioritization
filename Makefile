@@ -33,8 +33,8 @@ typecheck:  ## Type-check the package
 
 check: lint typecheck test  ## Everything CI would run
 
-app:  ## Launch the Streamlit app
-	uv run streamlit run app/streamlit_app.py
+app:  ## Launch the Streamlit app (checks required artifacts exist first)
+	uv run python scripts/run_app.py
 
 api:  ## Launch the FastAPI server
 	uv run uvicorn target_prioritization.api.main:app --reload

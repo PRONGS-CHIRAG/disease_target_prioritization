@@ -24,12 +24,19 @@ matplotlib.use("Agg")  # headless: figures are written to disk, never displayed
 
 import matplotlib.pyplot as plt
 import polars as pl
+from matplotlib.figure import Figure
 
 from target_prioritization.models.baseline import CONTRIBUTION_PREFIX, SCORE_COLUMN
 from target_prioritization.utils.logging import get_logger
 from target_prioritization.utils.paths import ensure_dir
 
-__all__ = ["DIMENSION_COLORS", "plot_evidence_breakdown"]
+__all__ = [
+    "DIMENSION_COLORS",
+    "build_evidence_breakdown_figure",
+    "build_evidence_radar_figure",
+    "plot_evidence_breakdown",
+    "plot_popularity_comparison",
+]
 
 log = get_logger(__name__)
 
@@ -61,22 +68,28 @@ GRID = "#e4e3df"
 _SEGMENT_GAP_PT = 1.5
 
 
-def plot_evidence_breakdown(
+def build_evidence_breakdown_figure(
     ranked: pl.DataFrame,
-    output_path: Path,
     *,
     top_n: int = 20,
     highlight: dict[str, str] | None = None,
     weights: dict[str, float] | None = None,
     title: str = "Top Parkinson's disease target candidates",
     subtitle: str = "Prioritization score decomposed into its weighted evidence dimensions",
-) -> Path:
-    """Draw the stacked evidence breakdown for the top *top_n* targets.
+) -> Figure:
+    """Build the stacked evidence-breakdown figure for the top *top_n* targets.
+
+    Milestone 3 (Context.md §21 target detail, §38.4 evidence radar): the
+    Streamlit app needs a live ``Figure`` to hand to ``st.pyplot`` — for
+    ANY disease, not only Parkinson's, and for the app's own scored frame,
+    not only Milestone 1's parquet. :func:`plot_evidence_breakdown` (below)
+    is now a thin wrapper over this that also saves to disk, kept
+    byte-identical to its pre-Milestone-3 output — this function is the
+    part that changed, not the arithmetic.
 
     Args:
         ranked: Ranked frame from ``WeightedBaseline.rank`` — needs
             ``gene_symbol``, ``prioritization_score`` and ``contrib__*``.
-        output_path: PNG destination.
         top_n: Number of targets to draw.
         highlight: ``{gene_symbol: annotation}`` for established disease genes.
             Marked with a text marker rather than a colour change, so the
@@ -85,7 +98,8 @@ def plot_evidence_breakdown(
             what produced each segment length without leaving the figure.
 
     Returns:
-        *output_path*.
+        The built, unsaved ``Figure`` — caller is responsible for saving
+        and/or closing it.
     """
     highlight = highlight or {}
     weights = weights or {}
@@ -208,9 +222,198 @@ def plot_evidence_breakdown(
         )
 
     fig.tight_layout(rect=(0, 0.05, 1, 0.955))
+    return fig
+
+
+def plot_evidence_breakdown(
+    ranked: pl.DataFrame,
+    output_path: Path,
+    *,
+    top_n: int = 20,
+    highlight: dict[str, str] | None = None,
+    weights: dict[str, float] | None = None,
+    title: str = "Top Parkinson's disease target candidates",
+    subtitle: str = "Prioritization score decomposed into its weighted evidence dimensions",
+) -> Path:
+    """Draw the stacked evidence breakdown for the top *top_n* targets and
+    save it to *output_path*.
+
+    Thin wrapper over :func:`build_evidence_breakdown_figure` — see that
+    function for the arguments and the figure's construction. Kept as a
+    separate function (rather than folding the save into the builder) so
+    Milestone 1's report generation keeps this exact call shape and its
+    committed PNG stays byte-identical.
+
+    Returns:
+        *output_path*.
+    """
+    fig = build_evidence_breakdown_figure(
+        ranked, top_n=top_n, highlight=highlight, weights=weights, title=title, subtitle=subtitle
+    )
+    ensure_dir(output_path.parent)
+    fig.savefig(output_path, facecolor=SURFACE, bbox_inches="tight")
+    n_targets = min(top_n, ranked.height)
+    plt.close(fig)
+
+    log.info("wrote_figure", path=str(output_path), targets=n_targets)
+    return output_path
+
+
+# Two-series palette for the Milestone 2 comparison chart. Deliberately just
+# two hues — the whole point of this figure is the SIZE of the gap between
+# them, not a categorical distinction that needs five colours to keep apart.
+_PRIMARY_COLOR = "#2a78d6"  # blue — same "genetics" hue as the M1 chart
+_NOVEL_COLOR = "#eb6834"  # orange — same "evidence_diversity" hue as the M1 chart
+
+
+def plot_popularity_comparison(
+    ndcg_primary: dict[str, float | None],
+    ndcg_novel: dict[str, float | None],
+    method_labels: dict[str, str],
+    output_path: Path,
+    *,
+    title: str = "Cross-disease target popularity drives most of the ranking signal",
+    subtitle: str = "NDCG@10, primary evaluation vs. positives novel to their own disease only",
+) -> Path:
+    """Grouped bar chart: each method's primary NDCG@10 next to its
+    novel-only NDCG@10 (Context.md §37, milestone2.md §1-2).
+
+    The gap between the two bars for a given method IS the figure's content —
+    a method whose novel-only bar nearly vanishes was riding cross-disease
+    target popularity rather than disease-specific signal.
+
+    Args:
+        ndcg_primary: ``{method_name: aggregate_ndcg_at_10}``, primary evaluation.
+        ndcg_novel: Same, evaluated against
+            ``models.evaluate.novel_only_labels``.
+        method_labels: ``{method_name: display_label}``.
+        output_path: PNG destination.
+
+    Returns:
+        *output_path*.
+    """
+    names = [n for n in method_labels if n in ndcg_primary]
+    # Sorted by primary score descending, so the headline finding (the
+    # highest bar is target_popularity, not a trained model) reads immediately.
+    names.sort(key=lambda n: ndcg_primary.get(n) or 0.0, reverse=True)
+
+    primary_values = [ndcg_primary.get(n) or 0.0 for n in names]
+    novel_values = [ndcg_novel.get(n) or 0.0 for n in names]
+    labels = [method_labels[n] for n in names]
+
+    fig, ax = plt.subplots(figsize=(9, 6), dpi=200)
+    fig.patch.set_facecolor(SURFACE)
+    ax.set_facecolor(SURFACE)
+
+    y = list(range(len(names)))[::-1]
+    bar_height = 0.34
+    offset = bar_height / 2 + 0.02
+
+    ax.barh(
+        [p + offset for p in y],
+        primary_values,
+        height=bar_height,
+        color=_PRIMARY_COLOR,
+        label="Primary",
+        zorder=3,
+    )
+    ax.barh(
+        [p - offset for p in y],
+        novel_values,
+        height=bar_height,
+        color=_NOVEL_COLOR,
+        label="Novel-only",
+        zorder=3,
+    )
+
+    for position, value in zip(y, primary_values, strict=True):
+        ax.text(
+            value + 0.01, position + offset, f"{value:.3f}", va="center", fontsize=8.5, color=INK_SECONDARY
+        )
+    for position, value in zip(y, novel_values, strict=True):
+        ax.text(
+            value + 0.01, position - offset, f"{value:.3f}", va="center", fontsize=8.5, color=INK_SECONDARY
+        )
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, fontsize=10, color=INK_SECONDARY)
+    ax.set_xlabel("NDCG@10 (aggregate across 10 diseases)", fontsize=10, color=INK_SECONDARY, labelpad=8)
+    ax.set_xlim(0, max(primary_values, default=0.1) * 1.2)
+    ax.tick_params(axis="x", colors=INK_MUTED, labelsize=9)
+    ax.tick_params(axis="y", length=0)
+
+    ax.grid(axis="x", color=GRID, linewidth=0.8, zorder=0)
+    ax.set_axisbelow(True)
+    for spine in ("top", "right", "left"):
+        ax.spines[spine].set_visible(False)
+    ax.spines["bottom"].set_color(GRID)
+
+    fig.suptitle(title, x=0.012, y=0.985, ha="left", fontsize=13.5, color=INK_PRIMARY, weight="bold")
+    ax.set_title(subtitle, loc="left", fontsize=9.5, color=INK_SECONDARY, pad=22)
+
+    legend = ax.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.09),
+        frameon=False,
+        fontsize=9,
+        ncol=2,
+        columnspacing=1.6,
+        handlelength=1.2,
+    )
+    for text in legend.get_texts():
+        text.set_color(INK_SECONDARY)
+
+    fig.tight_layout(rect=(0, 0.04, 1, 0.94))
     ensure_dir(output_path.parent)
     fig.savefig(output_path, facecolor=SURFACE, bbox_inches="tight")
     plt.close(fig)
 
-    log.info("wrote_figure", path=str(output_path), targets=len(symbols))
+    log.info("wrote_figure", path=str(output_path), methods=len(names))
     return output_path
+
+
+def build_evidence_radar_figure(
+    dimension_values: dict[str, float | None],
+    *,
+    title: str = "Evidence radar",
+) -> Figure:
+    """One target's evidence dimensions as a radar/spider chart (Context.md
+    §38.4, Milestone 3).
+
+    Args:
+        dimension_values: ``{dimension: value}`` — dimensions restricted to
+            WeightedBaseline's five (``configs/model.yaml``
+            ``milestone_1_weights``), the only ones with a real per-target
+            value; the display order here is that dict's order, not sorted.
+            A ``None`` value plots as 0 — the SAME visual as a genuine zero,
+            which is a real ambiguity (Context.md §32.3): "no evidence" and
+            "weak evidence" look identical on this chart. The caller must
+            pair this figure with the missing-evidence panel so the
+            ambiguity is resolved in prose, not left for the reader to guess.
+
+    Returns:
+        The built, unsaved ``Figure``.
+    """
+    labels = list(dimension_values)
+    values = [dimension_values[d] or 0.0 for d in labels]
+    # Close the polygon.
+    angles = [i / len(labels) * 2 * 3.141592653589793 for i in range(len(labels))]
+    angles.append(angles[0])
+    values.append(values[0])
+
+    fig, ax = plt.subplots(figsize=(5, 5), dpi=200, subplot_kw={"projection": "polar"})
+    fig.patch.set_facecolor(SURFACE)
+    ax.set_facecolor(SURFACE)
+
+    ax.plot(angles, values, color=_PRIMARY_COLOR, linewidth=1.6)
+    ax.fill(angles, values, color=_PRIMARY_COLOR, alpha=0.25)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels([DIMENSION_LABELS.get(d, d) for d in labels], fontsize=9, color=INK_SECONDARY)
+    ax.set_ylim(0, 1)
+    ax.tick_params(axis="y", labelsize=7, colors=INK_MUTED)
+    ax.spines["polar"].set_color(GRID)
+    ax.grid(color=GRID, linewidth=0.7)
+
+    ax.set_title(title, fontsize=12, color=INK_PRIMARY, pad=18)
+    fig.tight_layout()
+    return fig

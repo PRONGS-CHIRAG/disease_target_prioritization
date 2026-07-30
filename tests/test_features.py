@@ -222,6 +222,45 @@ class TestSelectFeatureColumns:
         frame = pl.DataFrame({"label": [1], "expr__max_tpm": [12.5]})
         assert select_feature_columns(frame, guard=guard) == ["expr__max_tpm"]
 
+    def test_excludes_biotype(self):
+        """biotype is a string column; letting it through fails at model.fit(),
+        not here, which is a much less legible place to discover it (Milestone 2
+        hit exactly this before select_feature_columns was unified onto
+        _NON_FEATURE_COLUMNS)."""
+        guard = LeakageGuardConfig(enabled=True, denylist=[])
+        frame = pl.DataFrame(
+            {
+                "target_id": ["ENSG00000188906"],
+                "biotype": ["protein_coding"],
+                "expr__max_tpm": [12.5],
+            }
+        )
+        assert select_feature_columns(frame, guard=guard) == ["expr__max_tpm"]
+
+    def test_check_stale_false_allows_an_already_filtered_frame(self):
+        """A frame from build_disease_features/build_feature_table has already
+        had its denylisted columns dropped — required rules correctly find
+        nothing there, which is not staleness (Milestone 1's "Flaw 1")."""
+        guard = LeakageGuardConfig(
+            enabled=True,
+            denylist=[
+                DenylistRule(
+                    id="ot_clinical_precedence_datasource",
+                    match="assoc_ds__clinical_precedence*",
+                    reason="the label",
+                    required=True,
+                )
+            ],
+        )
+        frame = pl.DataFrame({"target_id": ["T1"], "assoc_ds__gwas_credible_sets_score": [0.5]})
+
+        with pytest.raises(LeakageError, match="matched nothing"):
+            select_feature_columns(frame, guard=guard)  # default check_stale=True
+
+        assert select_feature_columns(frame, guard=guard, check_stale=False) == [
+            "assoc_ds__gwas_credible_sets_score"
+        ]
+
 
 class TestRealConfig:
     """The shipped configs/features.yaml must be coherent."""

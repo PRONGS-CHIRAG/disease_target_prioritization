@@ -21,15 +21,22 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from target_prioritization.utils.paths import CONFIG_DIR
 
 __all__ = [
+    "AblationSpec",
     "DataSourcesConfig",
     "DatasetSpec",
     "DenylistRule",
     "DiseaseSpec",
     "DiseasesConfig",
+    "EvaluationConfig",
+    "EvidenceDimension",
+    "FeatureGroup",
     "FeaturesConfig",
+    "LabelConfig",
+    "LeakageGuardConfig",
     "ModelConfig",
     "Settings",
     "SourceSpec",
+    "SplitConfig",
     "load_data_sources",
     "load_diseases",
     "load_features",
@@ -305,6 +312,13 @@ class LabelConfig(_Base):
     positive_min_clinical_stage: int = Field(ge=1, le=4)
     negative_definition: str
     output_path: str
+    # Milestone 2 (Context.md §37). clinical_target's diseaseId is often a
+    # child ontology term (e.g. a breast-carcinoma subtype under breast
+    # carcinoma); a phase-3 drug for the child counts as evidence for the
+    # parent. Measured effect on release 26.06: breast carcinoma goes from 98
+    # to 361 positives, most other diseases move by single digits. See
+    # milestone2.md §2.
+    expand_to_descendants: bool = True
     notes: str | None = None
 
     @model_validator(mode="after")
@@ -407,6 +421,52 @@ class SplitConfig(_Base):
     notes: str | None = None
 
 
+class AblationSpec(_Base):
+    """One evaluation ablation (Context.md §32.2).
+
+    Exactly one of *drop_groups* / *keep_groups* is expected to be non-empty;
+    both being empty would silently evaluate the unablated model twice.
+    """
+
+    name: str
+    drop_groups: list[str] = Field(default_factory=list)
+    keep_groups: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _check_has_scope(self) -> AblationSpec:
+        if not self.drop_groups and not self.keep_groups:
+            raise ValueError(
+                f"Ablation {self.name!r} sets neither drop_groups nor keep_groups"
+            )
+        return self
+
+
+class EvaluationConfig(_Base):
+    """Evaluation configuration (Context.md §19).
+
+    Typed rather than a bare ``dict[str, Any]`` so a metric name typo in
+    ``model.yaml`` fails at config-load time instead of surfacing later as a
+    silently-skipped metric in the evaluation report.
+    """
+
+    aggregate_by: str
+    ranking_metrics: list[str] = Field(min_length=1)
+    classification_metrics: list[str] = Field(min_length=1)
+    primary_metric: str
+    baselines_for_comparison: list[str] = Field(default_factory=list)
+    ablations: list[AblationSpec] = Field(default_factory=list)
+    output_dir: str
+
+    @model_validator(mode="after")
+    def _check_primary_metric_is_evaluated(self) -> EvaluationConfig:
+        if self.primary_metric not in (*self.ranking_metrics, *self.classification_metrics):
+            raise ValueError(
+                f"primary_metric {self.primary_metric!r} is not listed in ranking_metrics "
+                "or classification_metrics"
+            )
+        return self
+
+
 class ModelConfig(_Base):
     version: int
     random_seed: int
@@ -416,7 +476,7 @@ class ModelConfig(_Base):
     milestone_1_weights: dict[str, float] = Field(default_factory=dict)
     evidence_diversity_saturation: int = Field(default=4, ge=1)
     models: dict[str, dict[str, Any]]
-    evaluation: dict[str, Any]
+    evaluation: EvaluationConfig
 
     @model_validator(mode="after")
     def _check_weights(self) -> ModelConfig:

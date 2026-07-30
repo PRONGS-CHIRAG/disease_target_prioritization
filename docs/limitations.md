@@ -56,3 +56,24 @@ surface them (Context.md §21, §31.12).
 15. **No wet-lab or clinical validation** has been performed on any output here.
 16. **This is a learning and portfolio project**, not a production system, and is
     not intended to match the tools used inside pharmaceutical companies.
+
+## Interface limitations (Milestone 3)
+
+17. **Three of the six evidence categories the app displays are not built for
+    any disease** — pathway, expression and network evidence need Reactome,
+    GTEx and STRING respectively (Context.md §28 Step 9), which are downloaded
+    and validated but not yet integrated into the feature pipeline. The app
+    marks these explicitly as "not yet integrated" everywhere they would
+    otherwise appear, rather than showing a blank or a zero that could be
+    misread as "assessed and absent."
+18. **The two scores shown side by side disagree structurally, and neither is
+    a free lunch.** The default (weighted baseline) is fully transparent but
+    the weaker ranker (NDCG@10 0.288); the alternative (held-out XGBoost) is
+    stronger in aggregate (0.696) but rides cross-disease target popularity
+    for most targets (novel-only NDCG@10 0.009 — milestone2.md §1). The app
+    shows both, with the caveat attached to the XGBoost view rather than
+    picked for the user.
+19. **Relevant-tissue and target-family filters, which the interface
+    specification asks for, are not available.** Rather than silently
+    ignoring a filter a user believes is being applied, the ranking service
+    raises if either is set.

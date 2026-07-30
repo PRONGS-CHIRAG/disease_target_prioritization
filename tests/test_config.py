@@ -214,7 +214,13 @@ class TestModelConfig:
                     "split": {"strategy": "leave_one_disease_out"},
                     "baseline_weights": {"a": 0.5, "b": 0.9},
                     "models": {},
-                    "evaluation": {},
+                    "evaluation": {
+                        "aggregate_by": "disease_id",
+                        "ranking_metrics": ["ndcg_at_10"],
+                        "classification_metrics": ["pr_auc"],
+                        "primary_metric": "ndcg_at_10",
+                        "output_dir": "reports/evaluation",
+                    },
                 }
             )
 
@@ -227,14 +233,20 @@ class TestModelConfig:
 
     def test_pr_auc_is_present(self):
         """§19.1 — ROC-AUC flatters under the class imbalance here."""
-        assert "pr_auc" in load_model_config().evaluation["classification_metrics"]
+        assert "pr_auc" in load_model_config().evaluation.classification_metrics
 
     def test_overall_score_is_a_baseline_not_a_feature(self):
         """§16 — it may be compared against, never trained on."""
         evaluation = load_model_config().evaluation
-        assert "open_targets_overall_score" in evaluation["baselines_for_comparison"]
+        assert "open_targets_overall_score" in evaluation.baselines_for_comparison
+
+    def test_target_popularity_baseline_is_configured(self):
+        """Milestone 2 (Context.md §37) — measures cross-disease label leakage
+        through target-intrinsic popularity rather than disease-specific
+        signal; see milestone2.md §1."""
+        assert "target_popularity" in load_model_config().evaluation.baselines_for_comparison
 
     def test_literature_ablation_is_configured(self):
         """§32.2 — measure how much performance is publication bias."""
-        names = {a["name"] for a in load_model_config().evaluation["ablations"]}
+        names = {a.name for a in load_model_config().evaluation.ablations}
         assert "no_literature" in names

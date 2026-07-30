@@ -1,0 +1,20 @@
+{
+  "dataset_version": "26.06",
+  "extraction_date": "2026-07-30",
+  "fold_models_used": {
+    "alzheimers_disease": "trained/folds/xgboost_lodo_alzheimers_disease.json",
+    "breast_carcinoma": "trained/folds/xgboost_lodo_breast_carcinoma.json",
+    "crohns_disease": "trained/folds/xgboost_lodo_crohns_disease.json",
+    "multiple_sclerosis": "trained/folds/xgboost_lodo_multiple_sclerosis.json",
+    "non_small_cell_lung_carcinoma": "trained/folds/xgboost_lodo_non_small_cell_lung_carcinoma.json",
+    "parkinsons_disease": "trained/folds/xgboost_lodo_parkinsons_disease.json",
+    "psoriasis": "trained/folds/xgboost_lodo_psoriasis.json",
+    "rheumatoid_arthritis": "trained/folds/xgboost_lodo_rheumatoid_arthritis.json",
+    "type_2_diabetes": "trained/folds/xgboost_lodo_type_2_diabetes.json",
+    "ulcerative_colitis": "trained/folds/xgboost_lodo_ulcerative_colitis.json"
+  },
+  "n_diseases": 10,
+  "n_distinct_targets": 22337,
+  "n_missing_held_out_score": 0,
+  "n_rows": 89666
+}

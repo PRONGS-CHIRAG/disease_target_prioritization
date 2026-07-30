@@ -1,15 +1,15 @@
 """Feature-table assembly and the leakage guard.
 
-The guard in this module is fully implemented; the feature computation around
-it is not yet. That ordering is deliberate. Context.md §16 and §32.1 identify
-label leakage as the central scientific risk of this project: a model trained
-on the evidence that defines its own label reproduces the Open Targets score
-and looks excellent while having learned nothing. That failure is silent — it
-shows up as unusually good metrics, which is the last thing anyone
-investigates.
+The guard was written first and tested first, before any feature computation
+existed — deliberately. Context.md §16 and §32.1 identify label leakage as
+the central scientific risk of this project: a model trained on the evidence
+that defines its own label reproduces the Open Targets score and looks
+excellent while having learned nothing. That failure is silent — it shows up
+as unusually good metrics, which is the last thing anyone investigates.
 
-So the guard is written first, tested first, and fails the build rather than
-warning.
+:func:`build_disease_features` (Milestone 1, Context.md §36) builds one
+disease's table; :func:`build_feature_table` (Milestone 2, §37) calls it once
+per disease and concatenates the results.
 """
 
 from __future__ import annotations
@@ -26,6 +26,7 @@ from target_prioritization.config import (
     DiseaseSpec,
     FeaturesConfig,
     LeakageGuardConfig,
+    load_diseases,
     load_features,
 )
 from target_prioritization.data import open_targets
@@ -243,62 +244,200 @@ def select_feature_columns(
     *,
     guard: LeakageGuardConfig | None = None,
     extra_exclude: set[str] | None = None,
+    check_stale: bool = True,
 ) -> list[str]:
     """Return the model-input columns of *frame*, after checking for leakage.
 
     Identifier and label columns are excluded first, then the remainder is
     passed through :func:`assert_no_leakage`.
+
+    Uses :data:`_NON_FEATURE_COLUMNS` — the same exclusion set
+    ``build_disease_features``'s own final check uses — rather than a second,
+    separately-maintained list. Two definitions of "not a feature" is exactly
+    how ``biotype`` (a string column, present but uncounted here until this
+    was unified) would have reached a model's ``.fit()`` and failed there
+    instead of at column-selection time, where the failure is legible.
+
+    Args:
+        check_stale: Also fail when a ``required`` denylist rule matches
+            nothing (the default — appropriate when *frame* has not yet had
+            its denylisted source columns removed). Set False when calling
+            this on a frame built by :func:`build_disease_features` or
+            :func:`build_feature_table`, which already dropped the
+            denylisted datasource before this point — the same "Flaw 1"
+            those functions document: a required rule correctly finding
+            nothing in an already-filtered frame is not staleness, and
+            :func:`verify_guard_liveness` is what actually keeps that check
+            honest, against the *unfiltered* source columns.
     """
-    excluded = ID_COLUMNS | LABEL_COLUMNS | (extra_exclude or set())
+    excluded = _NON_FEATURE_COLUMNS | (extra_exclude or set())
     candidates = [c for c in frame.columns if c not in excluded]
-    assert_no_leakage(candidates, guard)
+    assert_no_leakage(candidates, guard, check_stale=check_stale)
     return candidates
 
 
 # ---------------------------------------------------------------------------
-# Feature assembly — not yet implemented
+# Multi-disease assembly (Context.md §37)
 # ---------------------------------------------------------------------------
+
+# Deterministic column order for the written parquet: identifiers first, then
+# every feature column alphabetically. Context.md §33 requires reproducible
+# output, and `pl.concat(..., how="diagonal")` orders columns by the order
+# frames introduce them — which depends on which disease happened to be built
+# first, not on anything meaningful.
+_ID_COLUMN_ORDER = [
+    "disease_id",
+    "disease_name",
+    "target_id",
+    "gene_symbol",
+    "gene_name",
+    "biotype",
+    "dataset_version",
+    "extraction_date",
+]
+
+
+def _sparse_columns_by_disease(
+    combined: pl.DataFrame, feature_columns: list[str]
+) -> dict[str, list[str]]:
+    """Feature columns that are entirely null within a single disease.
+
+    Not acted on here — dropping a zero-variance column is a per-fold
+    decision made at evaluation/training time (a column all-null in a
+    training fold is untrainable; all-null in a test fold is unusable), since
+    which fold is "training" changes under leave-one-disease-out. Logged now
+    so the sparsity is visible at build time rather than discovered as a
+    training-time surprise: `crispr_screen`-derived columns, for instance,
+    are populated for only 3 of the 10 configured diseases.
+    """
+    sparse: dict[str, list[str]] = {}
+    for row in combined.group_by("disease_id").agg(
+        [pl.col(c).null_count().eq(pl.len()).alias(c) for c in feature_columns]
+    ).iter_rows(named=True):
+        disease_id = row.pop("disease_id")
+        all_null = [c for c, is_all_null in row.items() if is_all_null]
+        if all_null:
+            sparse[disease_id] = sorted(all_null)
+    return sparse
 
 
 def build_feature_table(
+    diseases: list[DiseaseSpec] | None = None,
     config: FeaturesConfig | None = None,
     *,
-    disease_ids: list[str] | None = None,
-) -> pl.DataFrame:
-    """Assemble the disease-target feature table.
+    saturation: int = 4,
+    con: duckdb.DuckDBPyConnection | None = None,
+) -> tuple[pl.DataFrame, dict[str, Any]]:
+    """Assemble the disease-target feature table across every configured disease.
 
-    One row per ``(disease_id, target_id)`` pair, per Context.md §14 and the
-    schema in §27. Assembly order:
+    One row per ``(disease_id, target_id)`` pair (Context.md §14, §37). Calls
+    :func:`build_disease_features` once per disease — the Milestone 1 path,
+    unmodified — and concatenates the results.
 
-    1. Candidate generation — all targets Open Targets associates with each
-       disease (Context.md §13).
-    2. Pivot ``association_by_datasource_direct`` from long to wide, dropping
-       denylisted datasources *before* the pivot so leaked columns are never
-       even constructed.
-    3. Join the per-group features from ``genetics``, ``expression``,
-       ``pathways``, ``network`` and ``druggability``.
-    4. Add ``missing__<group>`` indicators (Context.md §32.3 — a target can
-       look weak merely because nobody has studied it).
-    5. Add the evidence-diversity features (Context.md §14.9).
-    6. Stamp ``dataset_version`` and ``extraction_date`` (§33).
-    7. Call :func:`assert_no_leakage` before returning.
+    Open Targets datasource coverage varies by disease (`crispr_screen`
+    covers 3 of 10, `gene2phenotype` 1 of 10), so each disease's
+    :func:`~target_prioritization.data.open_targets.pivot_evidence` produces a
+    different column set. Concatenation therefore uses
+    ``how="diagonal"``: a datasource absent for a disease becomes null for
+    every row of that disease, which is the correct reading under Context.md
+    §32.3 — null means "not studied for this disease", not "studied and
+    found zero".
 
     Args:
+        diseases: Diseases to include. Defaults to every resolved disease in
+            ``configs/diseases.yaml``.
         config: Feature config. Defaults to ``configs/features.yaml``.
-        disease_ids: Restrict to these diseases. Defaults to every resolved
-            disease in ``configs/diseases.yaml``.
+        saturation: Evidence-type count at which the diversity term
+            saturates; forwarded to :func:`build_disease_features`.
 
     Returns:
-        The feature table, written by the caller to
-        ``data/processed/disease_target_features.parquet``.
+        ``(features, provenance)``. *features* has identifier columns first
+        (:data:`_ID_COLUMN_ORDER`), then every feature column in
+        alphabetical order — deterministic regardless of disease build
+        order, so the written parquet hashes identically across runs
+        (Context.md §33) once the run-varying ``extraction_date`` is
+        excluded from the comparison. *provenance* carries per-disease detail
+        from :func:`build_disease_features` plus the cross-disease sparsity
+        map.
 
     Raises:
         LeakageError: If the assembled table violates the denylist.
     """
-    raise NotImplementedError(
-        "Multi-disease assembly is Milestone 2. For the Milestone 1 "
-        "single-disease Open Targets path, use build_disease_features()."
-    )
+    config = config or load_features()
+    diseases = diseases if diseases is not None else load_diseases().resolved
+
+    if not diseases:
+        raise ValueError("No diseases to build features for")
+
+    owns = con is None
+    con = con or open_targets.connect()
+    try:
+        frames: list[pl.DataFrame] = []
+        per_disease: dict[str, dict[str, Any]] = {}
+        for disease in diseases:
+            features, prov = build_disease_features(
+                disease,
+                config=config,
+                saturation=saturation,
+                include_raw_datasource_scores=True,
+                con=con,
+            )
+            frames.append(features)
+            per_disease[disease.key] = prov
+            log.info(
+                "disease_features_added_to_table",
+                disease=disease.key,
+                rows=features.height,
+                columns=features.width,
+            )
+
+        combined = pl.concat(frames, how="diagonal")
+
+        id_columns = [c for c in _ID_COLUMN_ORDER if c in combined.columns]
+        feature_columns = sorted(c for c in combined.columns if c not in id_columns)
+        combined = combined.select([*id_columns, *feature_columns])
+
+        sparse_by_disease = _sparse_columns_by_disease(combined, feature_columns)
+        for disease_id, columns in sparse_by_disease.items():
+            log.info(
+                "disease_has_all_null_feature_columns",
+                disease_id=disease_id,
+                n_columns=len(columns),
+                columns=columns,
+                note=(
+                    "datasource(s) not present for this disease at all; "
+                    "handled per-fold at evaluation/training time, not here"
+                ),
+            )
+
+        # A second check on the assembled multi-disease frame, in addition to
+        # the one build_disease_features already runs per disease inside the
+        # loop above — cheap, and a diagonal concat is exactly the kind of
+        # operation that could in principle introduce a column no per-disease
+        # check ever saw.
+        assert_no_leakage(
+            [c for c in combined.columns if c not in _NON_FEATURE_COLUMNS],
+            config.leakage_guard,
+            check_stale=False,
+        )
+
+        provenance = {
+            "diseases": per_disease,
+            "n_diseases": len(diseases),
+            "n_total_rows": combined.height,
+            "n_feature_columns": len(feature_columns),
+            "sparse_columns_by_disease": sparse_by_disease,
+        }
+        log.info(
+            "feature_table_built",
+            n_diseases=len(diseases),
+            rows=combined.height,
+            columns=combined.width,
+        )
+        return combined, provenance
+    finally:
+        if owns:
+            con.close()
 
 
 def drop_denylisted_datasources(
@@ -392,6 +531,7 @@ def build_disease_features(
     *,
     config: FeaturesConfig | None = None,
     saturation: int = 4,
+    include_raw_datasource_scores: bool = False,
     con: duckdb.DuckDBPyConnection | None = None,
 ) -> tuple[pl.DataFrame, dict[str, Any]]:
     """Build the Milestone 1 feature table for a single disease (Context.md §36).
@@ -411,6 +551,16 @@ def build_disease_features(
     Args:
         disease: The disease to build for; must have a resolved ``efo_id``.
         saturation: Evidence-type count at which the diversity term saturates.
+        include_raw_datasource_scores: Also join the per-datasource
+            ``assoc_ds__<name>_score`` / ``_evidence_count`` columns from
+            :func:`~target_prioritization.data.open_targets.pivot_evidence`,
+            in addition to the five ``dim__`` aggregates. Off by default so
+            Milestone 1's documented column count (milestone1.md §4: "18
+            columns") stays exactly reproducible; Milestone 2
+            (:func:`build_feature_table`) turns it on, since SHAP needs
+            individually interpretable columns rather than pre-aggregated
+            dimensions. Safe either way — the columns come from *evidence*
+            AFTER the denylist drop, same as the dimensions do.
 
     Returns:
         ``(features, provenance)``. *provenance* records what was dropped and
@@ -462,9 +612,17 @@ def build_disease_features(
         safety = build_safety_features(target_ids, config, con)
         metadata = open_targets.load_target_metadata(target_ids, con)
 
+        features = dimensions.join(diversity, on="target_id", how="left")
+
+        if include_raw_datasource_scores:
+            # Built from `evidence` AFTER drop_denylisted_datasources, same
+            # source the dimensions above are built from — the denylisted
+            # datasource cannot reach this pivot either.
+            raw_scores = open_targets.pivot_evidence(evidence)
+            features = features.join(raw_scores, on="target_id", how="left")
+
         features = (
-            dimensions.join(diversity, on="target_id", how="left")
-            .join(druggability, on="target_id", how="left")
+            features.join(druggability, on="target_id", how="left")
             .join(safety, on="target_id", how="left")
             .join(metadata, on="target_id", how="left")
             .with_columns(

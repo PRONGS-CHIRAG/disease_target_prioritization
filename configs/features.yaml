@@ -44,12 +44,34 @@ label:
     negatives drawn from the same disease biology, not random genes —
     Context.md §32.5 notes that random negatives inflate apparent
     performance because they are trivially separable.
+  # Milestone 2 (Context.md §37). clinical_target.diseases often names an
+  # ontology CHILD of the diseases configured in diseases.yaml (a
+  # breast-carcinoma subtype under breast carcinoma) — a phase-3 drug for the
+  # child is evidence for the parent too. Measured against release 26.06:
+  # breast carcinoma goes 98 -> 361 positives with descendants expanded,
+  # NSCLC 513 -> 518, most of the other eight diseases move by single digits.
+  # A direct-ID-only run is reported alongside as a labelling sensitivity
+  # check (milestone2.md §2).
+  expand_to_descendants: true
   output_path: data/processed/labels.parquet
   notes: >
     This label is imperfect. A target without an approved drug is not
     necessarily a bad target; it may simply be understudied or recently
     discovered. Model outputs must therefore be presented as prioritization
     scores, never as ground truth (Context.md §15, §31).
+
+    Grey zone (stages 0-2, i.e. preclinical through phase 2) counts as
+    negative per positive_min_clinical_stage above; UNKNOWN (335 rows
+    release-wide) is excluded from both classes via clinical_stage_map,
+    never coerced to negative. A threshold-2 sensitivity run is reported
+    alongside the headline numbers (milestone2.md §2).
+
+    Targets whose ONLY Open Targets evidence is the denylisted
+    clinical_precedence datasource are dropped from the candidate set before
+    labelling — they have no features to rank on. This is not uniform across
+    diseases: multiple sclerosis loses 50% of its positives this way (330 ->
+    165), Alzheimer's only 5% (280 -> 267). Per-disease counts are recorded
+    in label provenance (milestone2.md §2).
 
 # ---------------------------------------------------------------------------
 # Leakage guard (Context.md §16, §32.1)

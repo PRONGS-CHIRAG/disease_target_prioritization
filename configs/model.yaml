@@ -126,6 +126,10 @@ models:
       colsample_bytree: 0.8
       min_child_weight: 5
       reg_lambda: 1.0
+      # Pinned rather than -1 (all cores). §33 requires bit-identical reruns,
+      # and multi-threaded histogram building can sum floating-point
+      # contributions in a different order across runs.
+      n_jobs: 1
       # Positives are rare; set from the training fold at fit time.
       scale_pos_weight: null
 
@@ -171,6 +175,11 @@ evaluation:
     - precision
     - recall
     - f1
+    # Computed on each model's raw predict_proba output. Under
+    # class_weight=balanced / scale_pos_weight, that output is not calibrated
+    # to the true ~2.5% prevalence, so read this as "how well-separated are
+    # the predicted probabilities" rather than "how calibrated are they" —
+    # the report states this explicitly rather than implying calibration.
     - brier_score
 
   primary_metric: ndcg_at_10
@@ -180,6 +189,14 @@ evaluation:
     - open_targets_overall_score
     - weighted_baseline
     - random_ranking
+    # Milestone 2 (Context.md §37): ranks each held-out disease's candidates
+    # by how many TRAINING-FOLD diseases the target is a positive in. 78-98%
+    # of every disease's positives are also positives elsewhere in the set
+    # (milestone2.md §1) — a model can beat random and weighted_baseline
+    # purely by learning "this is a druggable, well-studied protein" without
+    # any disease-specific signal. If this baseline beats logistic regression
+    # or XGBoost, that IS the milestone's headline finding, not a footnote.
+    - target_popularity
 
   # Context.md §32.2 — report metrics with and without the literature group, to
   # measure how much of the performance is publication bias rather than biology.
