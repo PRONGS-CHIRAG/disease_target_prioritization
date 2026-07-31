@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from functools import cache
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -293,8 +294,19 @@ def save_fitted_xgboost(model: FittedModel, path: Path) -> None:
     log.info("fitted_xgboost_saved", path=str(path))
 
 
+@cache
 def load_fitted_xgboost(path: Path) -> FittedModel:
     """Load an XGBoost :class:`FittedModel` written by :func:`save_fitted_xgboost`.
+
+    Cached by *path* (milestone5_plan.md §4.2) — the one exception to that
+    plan's "services stays frozen" boundary, added because
+    ``services.evidence_summary._xgboost_held_out_items`` calls this
+    directly with no injection seam, unlike ``build_evidence_card``'s
+    ``features=``/``weights=``/``diseases=`` parameters. Without it, a
+    long-running API process reloads a ~2.9 MB booster from disk on every
+    evidence request. A *process restart* is required to pick up a
+    retrained model at the same path — acceptable for a server process, the
+    same tradeoff the parquet caches in ``api/cache.py`` make.
 
     Raises:
         FileNotFoundError: If *path* or its ``.meta.json`` sidecar is missing.

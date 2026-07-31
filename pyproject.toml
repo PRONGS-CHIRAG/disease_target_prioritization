@@ -36,8 +36,7 @@ dependencies = [
     # Visualization
     "plotly>=5.22",
     "matplotlib>=3.9",
-    # App & API
-    "streamlit>=1.36",
+    # API
     "fastapi>=0.111",
     "uvicorn>=0.30",
     # CLI & logging

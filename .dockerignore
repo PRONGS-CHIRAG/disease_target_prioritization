@@ -1,0 +1,29 @@
+# The image needs data/processed/ and models/trained/ only — data/raw/ is
+# ~3 GB of source pulls the pipeline scripts regenerate, never read by the
+# API (milestone5_plan.md §4.5).
+data/raw/
+data/interim/
+data/external/
+
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.git/
+.github/
+
+notebooks/
+reports/
+docs/
+
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+app/
+scripts/run_app.py
+
+*.md
+!README.md

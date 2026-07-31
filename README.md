@@ -18,8 +18,9 @@ Specification: [Context.md](Context.md) and [Project_info.md](Project_info.md).
 | Data acquisition & repository scaffolding | **Done** |
 | Milestone 1 — Parkinson's rule-based baseline (Context §36) | **Done** — [implementation record](milestone1.md) |
 | Milestone 2 — multi-disease ML baseline (Context §37) | **Done** — [implementation record](milestone2.md), [full report](reports/evaluation/baseline_report.md) |
-| Milestone 3 — Streamlit app (Context §21) | **Done** — [implementation record](milestone3.md) |
+| Milestone 3 — Streamlit app (Context §21) | **Superseded by Milestone 5** — [implementation record](milestone3.md) |
 | Milestone 4 — Reactome/GTEx/STRING integration, FastAPI `/rank` (Context §28 Step 9) | **Done** — [implementation record](milestone4.md) |
+| Milestone 5 — Next.js frontend, completed FastAPI, single-container deploy | **Done** — [implementation record](milestone5.md), [plan](milestone5_plan.md) |
 
 Implemented and tested: configuration, path and provenance utilities, the dataset
 downloader, identifier normalization, the leakage guard, the Open Targets readers,
@@ -29,16 +30,37 @@ label construction, the multi-disease feature table, leave-one-disease-out
 evaluation with ranking metrics, logistic regression / random forest / XGBoost
 training, non-learned comparison baselines, SHAP explanations, held-out
 per-disease fold models, the disease search / target ranking / evidence-card
-services, the three-page Streamlit app, Reactome/GTEx/STRING pathway/expression/
-network features, and the FastAPI `/rank` endpoint.
-430 tests.
+services, Reactome/GTEx/STRING pathway/expression/network features, a complete
+FastAPI surface (`/api/meta`, `/api/diseases*`, `/api/rank`, `/api/evidence`) and
+a Next.js frontend that replaces the Milestone 3 Streamlit app — disease overview,
+target ranking with scenario weights and CSV export, target evidence with an
+exact contribution breakdown and evidence radar, and a 2-4 target comparison
+view. 479 tests.
 
 No stubs remain. `features/pathways.py`, `expression.py` and `network.py` (Context
-§28 Step 9) and `api/main.py`'s `/rank` were the last four — see
-[milestone4.md](milestone4.md) for what was built, what was deliberately deferred
-(four columns needing a "known disease genes" seed set this repo has no
+§28 Step 9) and `api/main.py`'s `/rank` were the last four in the Python package —
+see [milestone4.md](milestone4.md) for what was built, what was deliberately
+deferred (four columns needing a "known disease genes" seed set this repo has no
 leakage-reviewed definition for), and a real gap Milestone 4 discovered along the
 way (GTEx has no synovial-tissue data at all, affecting rheumatoid arthritis).
+[milestone5.md](milestone5.md) covers the frontend migration: what changed in the
+API contract, and what Milestone 5 discovered along the way.
+
+## Running it
+
+```
+make setup              # create .venv, install with dev extras
+make frontend-install    # npm install in frontend/
+make dev                 # FastAPI on :8000 + Next.js dev server on :3000
+```
+
+Or as a single container (needs `data/processed/` and `models/trained/` already
+built — both are git-tracked, so a clean checkout has them):
+
+```
+make docker-build
+make docker-run          # serves the UI and API on :8000
+```
 
 ## Milestone 1 — the Parkinson's baseline
 

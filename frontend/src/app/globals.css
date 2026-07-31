@@ -1,0 +1,182 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-heading);
+  --color-dimension-genetics: var(--dimension-genetics);
+  --color-dimension-evidence-diversity: var(--dimension-evidence-diversity);
+  --color-dimension-functional: var(--dimension-functional);
+  --color-dimension-literature: var(--dimension-literature);
+  --color-dimension-druggability: var(--dimension-druggability);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/*
+ * "Instrument panel" tokens (milestone5_plan.md Phase 2, frontend-design
+ * skill). Neutrals and the five dimension colors are lifted from
+ * src/target_prioritization/viz.py's DIMENSION_COLORS/SURFACE/INK_* —
+ * that palette was validated (adjacent-pair and normal-vision CVD delta-E,
+ * see viz.py's module docstring) for the exact same evidence-dimension
+ * encoding this frontend reuses, so it is reused rather than re-derived.
+ * Light-mode values are the validated originals, unchanged; re-confirmed
+ * here with the dataviz skill's validator (all PASS, contrast WARN on 3 of
+ * 5 — the same relief-required finding viz.py already documents, satisfied
+ * throughout this app by direct-labeling every value in mono text next to
+ * its color, never color alone). Dark-mode values are NOT a naive
+ * lightening of the light set — the dark band is narrower (OKLCH L
+ * 0.48-0.67 vs light's 0.43-0.77) and three of the five light colors
+ * landed outside it; darkened/re-saturated and re-validated independently:
+ * `node validate_palette.js "#2a78d6,#d9601f,#1baf7a,#b8790a,#cc4f81"
+ * --mode dark --surface "#0e0f11"` → all 5 checks PASS.
+ */
+:root {
+  --background: #fcfcfb;
+  --foreground: #0b0b0b;
+  --card: #ffffff;
+  --card-foreground: #0b0b0b;
+  --popover: #ffffff;
+  --popover-foreground: #0b0b0b;
+  --primary: #2a78d6;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f0eb;
+  --secondary-foreground: #0b0b0b;
+  --muted: #f1f0eb;
+  --muted-foreground: #52514e;
+  --accent: #ebe9e1;
+  --accent-foreground: #0b0b0b;
+  --destructive: #a83c2e;
+  --destructive-foreground: #ffffff;
+  --border: #e4e3df;
+  --input: #e4e3df;
+  --ring: #2a78d6;
+  --dimension-genetics: #2a78d6;
+  --dimension-evidence-diversity: #eb6834;
+  --dimension-functional: #1baf7a;
+  --dimension-literature: #eda100;
+  --dimension-druggability: #e87ba4;
+  --chart-1: var(--dimension-genetics);
+  --chart-2: var(--dimension-evidence-diversity);
+  --chart-3: var(--dimension-functional);
+  --chart-4: var(--dimension-literature);
+  --chart-5: var(--dimension-druggability);
+  --radius: 0.375rem;
+  --sidebar: #f5f4ef;
+  --sidebar-foreground: #0b0b0b;
+  --sidebar-primary: #2a78d6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ebe9e1;
+  --sidebar-accent-foreground: #0b0b0b;
+  --sidebar-border: #e4e3df;
+  --sidebar-ring: #2a78d6;
+}
+
+.dark {
+  --background: #0e0f11;
+  --foreground: #f2f1ed;
+  --card: #16181b;
+  --card-foreground: #f2f1ed;
+  --popover: #16181b;
+  --popover-foreground: #f2f1ed;
+  --primary: #5b9ce6;
+  --primary-foreground: #0b0b0b;
+  --secondary: #1d2024;
+  --secondary-foreground: #f2f1ed;
+  --muted: #1d2024;
+  --muted-foreground: #a8a6a0;
+  --accent: #22262a;
+  --accent-foreground: #f2f1ed;
+  --destructive: #e0685a;
+  --destructive-foreground: #16181b;
+  --border: #2a2c2f;
+  --input: #2a2c2f;
+  --ring: #5b9ce6;
+  --dimension-genetics: #2a78d6;
+  --dimension-evidence-diversity: #d9601f;
+  --dimension-functional: #1baf7a;
+  --dimension-literature: #b8790a;
+  --dimension-druggability: #cc4f81;
+  --chart-1: var(--dimension-genetics);
+  --chart-2: var(--dimension-evidence-diversity);
+  --chart-3: var(--dimension-functional);
+  --chart-4: var(--dimension-literature);
+  --chart-5: var(--dimension-druggability);
+  --sidebar: #131518;
+  --sidebar-foreground: #f2f1ed;
+  --sidebar-primary: #5b9ce6;
+  --sidebar-primary-foreground: #0b0b0b;
+  --sidebar-accent: #22262a;
+  --sidebar-accent-foreground: #f2f1ed;
+  --sidebar-border: #2a2c2f;
+  --sidebar-ring: #5b9ce6;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-heading;
+  }
+}
+
+/* Respect reduced-motion (frontend-design skill's quality floor). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
