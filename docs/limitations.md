@@ -57,23 +57,46 @@ surface them (Context.md §21, §31.12).
 16. **This is a learning and portfolio project**, not a production system, and is
     not intended to match the tools used inside pharmaceutical companies.
 
-## Interface limitations (Milestone 3)
+## Interface limitations (Milestone 3/4)
 
-17. **Three of the six evidence categories the app displays are not built for
-    any disease** — pathway, expression and network evidence need Reactome,
-    GTEx and STRING respectively (Context.md §28 Step 9), which are downloaded
-    and validated but not yet integrated into the feature pipeline. The app
-    marks these explicitly as "not yet integrated" everywhere they would
-    otherwise appear, rather than showing a blank or a zero that could be
-    misread as "assessed and absent."
-18. **The two scores shown side by side disagree structurally, and neither is
-    a free lunch.** The default (weighted baseline) is fully transparent but
-    the weaker ranker (NDCG@10 0.288); the alternative (held-out XGBoost) is
-    stronger in aggregate (0.696) but rides cross-disease target popularity
-    for most targets (novel-only NDCG@10 0.009 — milestone2.md §1). The app
-    shows both, with the caveat attached to the XGBoost view rather than
+17. **Four columns Context.md §14.3/§14.5 describe are still not built** —
+    `path__overlap_with_known_disease_genes`, `path__n_disease_relevant_pathways`,
+    `net__n_disease_gene_neighbours`, `net__min_distance_to_disease_gene` all
+    need a per-disease "known disease genes" seed set this repo has no
+    leakage-reviewed definition for (milestone4_plan.md §2.1). The other
+    eleven pathway/expression/network columns Context.md §21/§38 ask for are
+    built as of Milestone 4 (Reactome, GTEx, STRING).
+18. **The two scores shown side by side disagree structurally, and the gap
+    widened at Milestone 4, not narrowed.** The default (weighted baseline)
+    is fully transparent but the weaker ranker (NDCG@10 0.288); the
+    alternative (held-out XGBoost) is stronger in aggregate (0.901, up from
+    0.696 at Milestone 2) but its novel-only score — the part that isolates
+    disease-specific signal from cross-disease popularity — fell from 0.009
+    to **exactly 0.000** once Reactome/GTEx/STRING features were added.
+    `net__weighted_degree` (STRING interaction count) is now this model's
+    single highest-SHAP feature (milestone2.md §1, docs/model_card.md). The
+    app shows both, with the caveat attached to the XGBoost view rather than
     picked for the user.
-19. **Relevant-tissue and target-family filters, which the interface
-    specification asks for, are not available.** Rather than silently
-    ignoring a filter a user believes is being applied, the ranking service
-    raises if either is set.
+19. **Target-family filtering, which the interface specification asks for,
+    is not available.** It needs `target.targetClass`, unrelated to
+    Reactome/GTEx/STRING. Rather than silently ignoring a filter a user
+    believes is being applied, the ranking service raises if it is set.
+    (Relevant-tissue filtering *is* available as of Milestone 4.)
+20. **GTEx v10 has no synovial-tissue data at all**, discovered while
+    building the relevant-tissue expression feature (expression.py). Every
+    other configured disease's relevant tissues resolve; rheumatoid
+    arthritis's `expr__relevant_tissue_tpm` is computed from its other two
+    configured tissues (blood, spleen) with the `synovium` miss logged
+    explicitly, not silently dropped or treated as zero expression.
+21. **`net__degree`/`net__pagerank`/`net__betweenness` are confounded with
+    study effort**, the same publication-bias risk literature features
+    already carry (item 6) — a well-studied protein accumulates recorded
+    STRING interactions for the same reason it accumulates papers. Milestone
+    4's own measurement (item 18) shows this is not a hypothetical concern.
+22. **`net__betweenness` is a sampled estimate** (500 of ~19,700 graph nodes,
+    seeded), not exact — exact betweenness centrality on a graph this size is
+    computationally infeasible. Reproducible for a fixed seed, not exact.
+23. **`dim__pathways`/`dim__network`/`dim__expression` (the columns that make
+    `configs/model.yaml`'s `baseline_weights` computable) are illustrative
+    normalizations**, same caveat as the weights themselves — a saturating
+    transform and percentile ranks, not validated scales.

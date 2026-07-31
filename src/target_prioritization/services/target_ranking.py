@@ -37,6 +37,7 @@ import polars as pl
 
 from target_prioritization.app_data import APP_DATA_NAME
 from target_prioritization.config import load_model_config
+from target_prioritization.features.expression import TPM_DETECTION_THRESHOLD
 from target_prioritization.features.genetics import DIMENSION_PREFIX, MISSING_PREFIX
 from target_prioritization.models.baseline import SCORE_COLUMN, WeightedBaseline
 from target_prioritization.models.explain import source_references
@@ -65,20 +66,17 @@ APP_DATA_PATH = DATA_PROCESSED / APP_DATA_NAME
 # §21's ranked-table evidence columns and §38.2's, restricted to categories
 # that are absence-of-evidence signals rather than a safety flag or the
 # training label; literature is excluded because it is not a column in
-# either table (unlike in WeightedBaseline's own five). Three of the six
-# are categorically absent for EVERY target, not a per-target null — this
-# milestone does not build pathway, expression or network features at all —
-# so the ceiling is 3/6 for essentially every target. Two columns with the
+# either table (unlike in WeightedBaseline's own five). Two columns with the
 # same name and different denominators is exactly the trap this project's
 # leakage guard exists to catch elsewhere, hence the distinct name
 # `app_evidence_completeness` on `RankedTarget`, never `evidence_completeness`.
-APP_EVIDENCE_CATEGORIES = ["genetics", "functional", "pathway", "expression", "network", "druggability"]
+# All six are now built (Milestone 4 wired in Reactome/GTEx/STRING — see
+# milestone4_plan.md); UNAVAILABLE_EVIDENCE_CATEGORIES is kept, empty, as the
+# hook a future genuinely-unbuildable category would populate, rather than
+# removed outright — app_checks.check_placeholders asserts it stays empty.
+APP_EVIDENCE_CATEGORIES = ["genetics", "functional", "pathways", "expression", "network", "druggability"]
 
-UNAVAILABLE_EVIDENCE_CATEGORIES: dict[str, str] = {
-    "pathway": "not yet integrated — needs Reactome (Context.md §28 Step 9)",
-    "expression": "not yet integrated — needs GTEx (Context.md §28 Step 9)",
-    "network": "not yet integrated — needs STRING (Context.md §28 Step 9)",
-}
+UNAVAILABLE_EVIDENCE_CATEGORIES: dict[str, str] = {}
 
 # The subset of APP_EVIDENCE_CATEGORIES this milestone actually builds, i.e.
 # the ones with a real dim__/missing__ column in disease_target_features.parquet.
@@ -102,22 +100,26 @@ SAFETY_LIABILITY_VALUE = -1
 class RankingFilters:
     """Filters from the MVP interface spec (Context.md §21, §38.3).
 
-    `relevant_tissue` and `target_family` are declared here because the spec
-    asks for them, but neither is buildable (milestone3_plan.md §1):
-    `relevant_tissue` needs per-target GTEx expression and `target_family`
-    needs `target.targetClass`, and neither is a column in
+    `relevant_tissue` is buildable as of Milestone 4 (milestone4_plan.md):
+    set it (any truthy string — the disease's own configured tissues are
+    what `expr__relevant_tissue_tpm` was computed against, so this is a
+    switch, not a free-text tissue override) to keep only targets with
+    detectable expression in the disease-relevant tissue.
+
+    `target_family` is still not buildable — it needs `target.targetClass`,
+    which is unrelated to Reactome/GTEx/STRING and is not a column in
     `disease_target_features.parquet`. Left in the type — not deleted — so
     the gap is visible to anyone reading the type, not just this docstring.
-    `rank_for_disease` raises if either is set, rather than silently
-    accepting and ignoring a filter the caller believes is being applied.
+    `rank_for_disease` raises if it is set, rather than silently accepting
+    and ignoring a filter the caller believes is being applied.
 
-    `exclude_safety_concerns` IS buildable, unlike the two above — §38.3's
-    "Safety concern" filter maps onto `prio__has_safety_event`
-    (target_prioritisation's signed liability flag, -1 = a recorded concern),
-    even though safety has no WEIGHT in the score (configs/model.yaml has no
-    safety term, deliberately: Context.md §14.7 forbids presenting these as
-    validated toxicity predictions). A filter needs no calibrated score to
-    be honest; a weighted contribution does.
+    `exclude_safety_concerns` is also buildable — §38.3's "Safety concern"
+    filter maps onto `prio__has_safety_event` (target_prioritisation's
+    signed liability flag, -1 = a recorded concern), even though safety has
+    no WEIGHT in the score (configs/model.yaml has no safety term,
+    deliberately: Context.md §14.7 forbids presenting these as validated
+    toxicity predictions). A filter needs no calibrated score to be honest;
+    a weighted contribution does.
     """
 
     min_genetics_evidence: float | None = None
@@ -241,12 +243,12 @@ def load_precomputed_scores(disease_id: str, *, app_data: pl.DataFrame | None = 
 
 
 def _reject_unbuildable_filters(filters: RankingFilters) -> None:
-    if filters.relevant_tissue or filters.target_family:
+    if filters.target_family:
         raise ValueError(
-            "relevant_tissue and target_family are not buildable in this release "
-            "(milestone3_plan.md §1: relevant_tissue needs GTEx, target_family needs "
-            "target.targetClass; neither is a column in disease_target_features.parquet). "
-            "Refusing to silently ignore a filter the caller believes is being applied."
+            "target_family is not buildable in this release (target.targetClass is not a "
+            "column in disease_target_features.parquet, and is unrelated to Reactome/GTEx/"
+            "STRING — milestone4_plan.md §9). Refusing to silently ignore a filter the "
+            "caller believes is being applied."
         )
 
 
@@ -254,6 +256,15 @@ def _apply_filters(ranked: pl.DataFrame, filters: RankingFilters) -> pl.DataFram
     result = ranked
     if filters.min_genetics_evidence is not None:
         result = result.filter(pl.col(f"{DIMENSION_PREFIX}genetics").fill_null(0.0) >= filters.min_genetics_evidence)
+    if filters.relevant_tissue:
+        # Null-safe: a null expr__relevant_tissue_tpm means "not studied /
+        # this disease's tissues don't resolve against GTEx" (rheumatoid
+        # arthritis's synovium — expression.py's module docstring), not
+        # "confirmed absent" — treated as failing the filter, same as an
+        # explicit low value would, never silently passed through.
+        result = result.filter(
+            pl.col("expr__relevant_tissue_tpm").fill_null(0.0) >= TPM_DETECTION_THRESHOLD
+        )
     if filters.require_druggable:
         result = result.filter(pl.col("prio__has_small_molecule_binder") == 1)
     if filters.min_evidence_completeness is not None:

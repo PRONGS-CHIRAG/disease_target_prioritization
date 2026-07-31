@@ -34,6 +34,9 @@ def _features() -> pl.DataFrame:
             "missing__genetics": [0, 0, 0, 0],
             "missing__functional": [0, 0, 0, 0],
             "missing__druggability": [0, 0, 0, 0],
+            "missing__pathways": [0, 1, 0, 0],
+            "missing__network": [0, 0, 0, 0],
+            "missing__expression": [0, 0, 0, 0],
             "prio__has_safety_event": [None, None, -1, None],
             "dataset_version": ["26.06"] * 4,
         }
@@ -60,9 +63,17 @@ class TestBuildEvidenceCardWithoutAFoldModel:
         card = build_evidence_card("D1", "T1", features=_features(), weights=WEIGHTS, diseases=[])
         assert card.contradicting == []
 
-    def test_missing_always_includes_the_three_unbuilt_categories(self):
+    def test_missing_is_empty_when_every_category_is_present(self):
+        """As of Milestone 4, UNAVAILABLE_EVIDENCE_CATEGORIES is empty — a
+        category appears in `missing` only when THIS target's own
+        `missing__<category>` flag is set, never categorically for every
+        target (unlike through Milestone 3)."""
         card = build_evidence_card("D1", "T1", features=_features(), weights=WEIGHTS, diseases=[])
-        assert {"pathway", "expression", "network"}.issubset(set(card.missing))
+        assert card.missing == []
+
+    def test_missing_reflects_a_genuinely_missing_category(self):
+        card = build_evidence_card("D1", "T2", features=_features(), weights=WEIGHTS, diseases=[])
+        assert card.missing == ["pathways"]
 
     def test_limitations_include_standing_limitations(self):
         card = build_evidence_card("D1", "T1", features=_features(), weights=WEIGHTS, diseases=[])

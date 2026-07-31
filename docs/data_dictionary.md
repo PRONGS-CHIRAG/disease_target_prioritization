@@ -3,8 +3,6 @@
 Target schema for `data/processed/disease_target_features.parquet`, one row per
 `(disease_id, target_id)`. From Context.md §27 and §14, and Project_info.md §17.
 
-**Not yet generated** — this is the contract `features/build_features.py` must meet.
-
 ## Identification
 
 | Column | Type | Description |
@@ -27,14 +25,21 @@ derived, `missing__` missingness indicators.
 | --- | --- | --- |
 | genetics | `assoc_ds__gwas_credible_sets_score`, `assoc_ds__gene_burden_score`, `genetics__n_datasources` | Open Targets |
 | literature | `assoc_ds__europepmc_score` *(log-transformed)* | Open Targets |
-| pathways | `path__n_pathways`, `path__overlap_with_known_disease_genes` | Reactome |
+| pathways | `path__n_pathways` (distinct root Reactome categories) | Reactome |
 | expression | `expr__relevant_tissue_tpm`, `expr__tissue_specificity` | GTEx v10 |
-| network | `net__degree`, `net__pagerank`, `net__min_distance_to_disease_gene` | STRING v12 |
+| network | `net__degree`, `net__pagerank`, `net__betweenness` (sampled) | STRING v12 |
 | druggability | `prio__has_pocket`, `prio__has_ligand`, `prio__is_in_membrane` | Open Targets |
 | safety | `prio__genetic_constraint`, `prio__mouse_ko_score`, `prio__has_safety_event` | Open Targets |
 | evidence diversity | `diversity__n_evidence_types`, `diversity__pct_categories_present` | Derived |
 
-Full list: `configs/features.yaml`.
+Full list: `configs/features.yaml`. Each of the six groups also contributes a
+`dim__<group>` aggregate (`[0, 1]`, illustrative — same caveat as
+`configs/model.yaml`'s `baseline_weights`) for `baseline_weights`/`WeightedBaseline`
+to consume. Four columns Context.md §14.3/§14.5 describe —
+`path__overlap_with_known_disease_genes`, `path__n_disease_relevant_pathways`,
+`net__n_disease_gene_neighbours`, `net__min_distance_to_disease_gene` — are
+deliberately not built: they need a per-disease "known disease genes" seed set
+this repo has no leakage-reviewed definition for (milestone4_plan.md §2.1).
 
 ## Missingness
 

@@ -61,14 +61,14 @@ but the count of *other* diseases where it is a labelled positive
 | Method | Primary | Novel-only |
 | --- | ---: | ---: |
 | Weighted baseline | 0.288 | 0.050 |
-| Logistic regression | 0.501 | 0.067 |
-| Random forest | 0.529 | 0.000 |
-| XGBoost | 0.696 | 0.009 |
+| Logistic regression | 0.487 | 0.062 |
+| Random forest | 0.865 | 0.000 |
+| XGBoost | 0.901 | 0.000 |
 | OT overall score | 0.752 | 0.093 |
 | Random | 0.031 | 0.000 |
 | Target popularity | 0.873 | 0.000 |
 
-Primary-column ranking: Target popularity (0.873) > OT overall score (0.752) > XGBoost (0.696) > Random forest (0.529) > Logistic regression (0.501) > Weighted baseline (0.288) > Random (0.031).
+Primary-column ranking: XGBoost (0.901) > Target popularity (0.873) > Random forest (0.865) > OT overall score (0.752) > Logistic regression (0.487) > Weighted baseline (0.288) > Random (0.031).
 
 **`target_popularity` outranks every trained model, including XGBoost.** That
 is this milestone's headline result, not a footnote.
@@ -80,11 +80,11 @@ The "Novel-only" column re-evaluates every method against
 the same candidates, the same ranking, but every positive that recurs across
 diseases is relabelled negative first, so only positives unique to their own
 disease count as relevant. Every method's NDCG@10 collapses:
-OT overall score (0.093) > Logistic regression (0.067) > Weighted baseline (0.050) > XGBoost (0.009) > Random forest (0.000) > Target popularity (0.000).
+OT overall score (0.093) > Logistic regression (0.062) > Weighted baseline (0.050) > Random forest (0.000) > XGBoost (0.000) > Target popularity (0.000).
 
 `target_popularity` goes to exactly 0.0 — mechanically guaranteed, since a
 novel-only positive by definition scores 0 under that baseline. XGBoost falls
-from 0.696 to 0.009:
+from 0.901 to 0.000:
 on the evidence measured here, the model learned mostly cross-disease
 popularity, not disease-specific biology.
 
@@ -95,9 +95,9 @@ Aggregate (mean across diseases), primary evaluation:
 | Method | NDCG@10 | NDCG@20 | Precision@10 | Recall@20 | MAP | MRR | Hit rate | ROC-AUC | PR-AUC |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | Weighted baseline | 0.288 | 0.250 | 0.220 | 0.019 | 0.083 | 0.698 | 1.000 | 0.755 | 0.083 |
-| Logistic regression | 0.501 | 0.405 | 0.440 | 0.032 | 0.143 | 0.900 | 1.000 | 0.829 | 0.142 |
-| Random forest | 0.529 | 0.510 | 0.490 | 0.050 | 0.222 | 0.817 | 1.000 | 0.874 | 0.222 |
-| XGBoost | 0.696 | 0.654 | 0.720 | 0.068 | 0.301 | 0.758 | 1.000 | 0.904 | 0.301 |
+| Logistic regression | 0.487 | 0.392 | 0.440 | 0.030 | 0.164 | 0.850 | 1.000 | 0.887 | 0.164 |
+| Random forest | 0.865 | 0.814 | 0.850 | 0.082 | 0.556 | 0.933 | 1.000 | 0.969 | 0.556 |
+| XGBoost | 0.901 | 0.883 | 0.880 | 0.092 | 0.564 | 1.000 | 1.000 | 0.964 | 0.564 |
 | OT overall score | 0.752 | 0.767 | 0.770 | 0.090 | 0.290 | 0.800 | 1.000 | 0.887 | 0.290 |
 | Random | 0.031 | 0.035 | 0.030 | 0.004 | 0.027 | 0.127 | 0.300 | 0.503 | 0.027 |
 | Target popularity | 0.873 | 0.838 | 0.840 | 0.092 | 0.567 | 0.950 | 1.000 | 0.936 | 0.535 |
@@ -113,16 +113,16 @@ correctly reported as undefined rather than crashing the evaluation
 
 | Disease | Weighted baseline | Logistic regression | Random forest | XGBoost | OT overall score | Random | Target popularity |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Alzheimer's disease | 0.404 | 0.606 | 0.775 | 0.931 | 0.742 | 0.000 | 0.644 |
-| breast carcinoma | 0.359 | 0.742 | 0.788 | 0.731 | 0.320 | 0.110 | 0.870 |
-| Crohn's disease | 0.224 | 0.469 | 0.479 | 0.502 | 0.710 | 0.095 | 0.936 |
-| multiple sclerosis | 0.066 | 0.293 | 0.501 | 0.430 | 0.861 | 0.110 | 0.870 |
-| non-small cell lung carcinoma | 0.606 | 0.931 | 1.000 | 0.861 | 1.000 | 0.000 | 0.934 |
-| Parkinson's disease | 0.078 | 0.286 | 0.183 | 0.861 | 0.446 | 0.000 | 0.870 |
-| psoriasis | 0.315 | 0.510 | 0.394 | 0.383 | 0.905 | 0.000 | 0.731 |
-| rheumatoid arthritis | 0.085 | 0.554 | 0.596 | 0.839 | 0.836 | 0.000 | 1.000 |
-| type II diabetes mellitus | 0.523 | 0.319 | 0.220 | 0.530 | 0.701 | 0.000 | 0.870 |
-| ulcerative colitis | 0.220 | 0.298 | 0.349 | 0.890 | 1.000 | 0.000 | 1.000 |
+| Alzheimer's disease | 0.404 | 0.591 | 1.000 | 1.000 | 0.742 | 0.000 | 0.644 |
+| breast carcinoma | 0.359 | 0.672 | 0.915 | 0.870 | 0.320 | 0.110 | 0.870 |
+| Crohn's disease | 0.224 | 0.290 | 0.247 | 0.551 | 0.710 | 0.095 | 0.936 |
+| multiple sclerosis | 0.066 | 0.290 | 1.000 | 0.931 | 0.861 | 0.110 | 0.870 |
+| non-small cell lung carcinoma | 0.606 | 0.934 | 0.934 | 1.000 | 1.000 | 0.000 | 0.934 |
+| Parkinson's disease | 0.078 | 0.286 | 1.000 | 1.000 | 0.446 | 0.000 | 0.870 |
+| psoriasis | 0.315 | 0.564 | 0.934 | 0.890 | 0.905 | 0.000 | 0.731 |
+| rheumatoid arthritis | 0.085 | 0.628 | 0.927 | 0.915 | 0.836 | 0.000 | 1.000 |
+| type II diabetes mellitus | 0.523 | 0.479 | 0.867 | 1.000 | 0.701 | 0.000 | 0.870 |
+| ulcerative colitis | 0.220 | 0.139 | 0.824 | 0.849 | 1.000 | 0.000 | 1.000 |
 
 ## 4. Acceptance check
 
@@ -156,10 +156,10 @@ target's "distinct evidence types" — `n_evidence_types` and
 
 | | NDCG@10 |
 | --- | ---: |
-| With literature | 0.696 |
-| Without literature | 0.743 |
+| With literature | 0.901 |
+| Without literature | 0.889 |
 
-Removing literature *improves* NDCG@10 by 0.047, not the modest positive contribution a naive reading of Milestone 1's finding would predict. This ablation removes `n_evidence_types` / `dim__evidence_diversity` along with the direct literature columns (they count literature datasources among the 'distinct evidence types' a target has, so leaving them in would let the model recover literature presence indirectly) — so the result reflects literature's contribution net of losing that broader diversity term, not literature considered in isolation. It is nonetheless further evidence against literature volume being a useful disease-specific signal here.
+Removing literature costs 0.011 NDCG@10 — literature contributes a real but modest amount, consistent with Milestone 1's finding that it is present but not dominant once genetics and functional evidence are available (milestone1.md §5).
 
 ## 6. The weighted baseline was never tuned against this label
 
@@ -190,16 +190,16 @@ this table cannot drift from the model it describes.
 
 | Feature | Mean absolute SHAP |
 | --- | ---: |
-| `prio__has_ligand` | 0.9110 |
-| `prio__genetic_constraint` | 0.5976 |
-| `assoc_ds__europepmc_evidence_count` | 0.5821 |
-| `dim__druggability` | 0.5657 |
-| `prio__mouse_k_o_score` | 0.3520 |
-| `assoc_ds__europepmc_score` | 0.3071 |
-| `prio__has_safety_event` | 0.1664 |
-| `dim__literature` | 0.1640 |
-| `assoc_ds__reactome_evidence_count` | 0.1437 |
-| `dim__functional` | 0.1071 |
+| `net__weighted_degree` | 1.0860 |
+| `prio__has_ligand` | 0.8735 |
+| `net__mean_edge_confidence` | 0.5691 |
+| `dim__druggability` | 0.4965 |
+| `assoc_ds__europepmc_evidence_count` | 0.4897 |
+| `net__degree` | 0.4304 |
+| `expr__median_tpm` | 0.3399 |
+| `prio__genetic_constraint` | 0.3123 |
+| `expr__tissue_specificity` | 0.2742 |
+| `dim__network` | 0.2572 |
 
 ## 8. Limitations
 
@@ -213,10 +213,14 @@ this table cannot drift from the model it describes.
 3. **Ten diseases only.** Generalisation to diseases outside
    `configs/diseases.yaml` is untested; leave-one-disease-out measures
    robustness across *these* ten, not universally.
-4. **No external datasets.** Reactome, GTEx and STRING are downloaded and
-   validated but unused (Context.md §28 Step 9 schedules them after this
-   baseline works) — pathway, tissue-expression and network evidence are
-   entirely absent from every model here.
+4. **Reactome/GTEx/STRING topology and expression features are disease-invariant
+   gene properties, learned by XGBoost as such.** Milestone 4 (milestone4_plan.md)
+   wired in `path__*`/`net__*`/`expr__*`; `net__weighted_degree` is now this
+   model's single highest-SHAP feature. Because the same gene has the identical
+   topology regardless of which disease is being ranked, this widens the
+   cross-disease popularity gap point 1 already describes rather than closing
+   it — see `reports/evaluation/baseline_weights_comparison.json` for the
+   weighted-baseline-side comparison, which does not have this problem.
 5. **Safety is not scored.** `prio__has_safety_event` and related columns are
    present in the feature table but never combined into any model's score
    (Context.md §14.7, §31.7) — a high-ranked target may still be unsafe to

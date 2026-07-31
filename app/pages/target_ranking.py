@@ -69,13 +69,16 @@ def _render_scenario_controls() -> tuple[dict[str, float], bool]:
 def _render_filters(force_exclude_safety: bool) -> RankingFilters:
     st.subheader("Filters")
     st.caption(
-        "Relevant-tissue and target-family filters are not available in this release "
-        "(need GTEx / target.targetClass — Context.md §28 Step 9)."
+        "Target-family filtering is not available in this release (needs target.targetClass, "
+        "unrelated to Reactome/GTEx/STRING — milestone4_plan.md §9)."
     )
     col1, col2 = st.columns(2)
     with col1:
         min_genetics = st.slider("Minimum genetics evidence", 0.0, 1.0, 0.0, 0.05)
         require_druggable = st.checkbox("Require small-molecule druggability", value=False)
+        require_relevant_tissue = st.checkbox(
+            "Require detectable expression in disease-relevant tissue", value=False
+        )
     with col2:
         min_completeness = st.slider(
             f"Minimum evidence completeness (of {len(APP_EVIDENCE_CATEGORIES)} categories)", 0.0, 1.0, 0.0, 1 / 6
@@ -87,6 +90,7 @@ def _render_filters(force_exclude_safety: bool) -> RankingFilters:
     return RankingFilters(
         min_genetics_evidence=min_genetics or None,
         require_druggable=require_druggable,
+        relevant_tissue="relevant_tissue" if require_relevant_tissue else None,
         min_evidence_completeness=min_completeness or None,
         exclude_safety_concerns=exclude_safety,
     )
@@ -155,9 +159,8 @@ def render() -> None:
     # straight to Arrow with no pandas object-array inference in the path.
     st.dataframe(pl.DataFrame(rows), hide_index=True, width="stretch")
     st.caption(
-        "Evidence completeness counts genetics/functional/druggability (built) plus pathway/"
-        "expression/network (not yet integrated for any disease — Context.md §28 Step 9), out "
-        "of 6 total categories."
+        "Evidence completeness counts all six categories — genetics, functional, druggability, "
+        "pathway, expression and network (Milestone 4 — milestone4_plan.md) — out of 6 total."
     )
 
     st.subheader("View target detail")

@@ -59,9 +59,8 @@ def render() -> None:
 
     st.subheader("Evidence-source coverage")
     st.caption(
-        "This milestone builds three of the six evidence categories Context.md §21/§38.2 "
-        "specify. The other three are not a gap in this disease's data — they are not built "
-        "for ANY disease yet (Context.md §28 Step 9)."
+        "All six evidence categories Context.md §21/§38.2 specify are built as of Milestone 4 "
+        "(milestone4_plan.md) — Reactome, GTEx and STRING are integrated alongside Open Targets."
     )
     coverage_rows = [
         {

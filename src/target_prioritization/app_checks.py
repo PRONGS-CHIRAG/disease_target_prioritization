@@ -25,8 +25,10 @@ been shown to fire on the real pipeline is not known to work):
 5. The displayed XGBoost score for a disease comes from the fold model
    that excluded it — checked two ways: it matches a fresh score from that
    fold model, AND it differs from the in-sample all-disease refit.
-6. Every unbuildable §21/§38 element has a stated placeholder reason, and
-   the two unbuildable filters raise rather than silently no-op.
+6. Milestone 4: `UNAVAILABLE_EVIDENCE_CATEGORIES` is empty (pathway,
+   expression and network are all built) and `relevant_tissue` filters
+   rather than raising; `target_family` still correctly raises (needs
+   `target.targetClass`, unrelated to Reactome/GTEx/STRING).
 """
 
 from __future__ import annotations
@@ -140,7 +142,14 @@ def check_missing_evidence_panel(disease_id: str) -> CheckResult:
     features = pl.read_parquet(DATA_PROCESSED / "disease_target_features.parquet").filter(
         pl.col("disease_id") == disease_id
     )
-    for missing_column in ("missing__genetics", "missing__functional", "missing__druggability"):
+    for missing_column in (
+        "missing__genetics",
+        "missing__functional",
+        "missing__druggability",
+        "missing__pathways",
+        "missing__network",
+        "missing__expression",
+    ):
         candidates = features.filter(pl.col(missing_column) == 1)
         if candidates.is_empty():
             continue
@@ -194,24 +203,42 @@ def check_fold_routing(disease: DiseaseSpec) -> CheckResult:
 
 
 def check_placeholders(disease_id: str) -> CheckResult:
-    problems: list[str] = []
-    if not target_ranking.UNAVAILABLE_EVIDENCE_CATEGORIES:
-        problems.append("UNAVAILABLE_EVIDENCE_CATEGORIES is empty")
-    for category, reason in target_ranking.UNAVAILABLE_EVIDENCE_CATEGORIES.items():
-        if "not yet integrated" not in reason:
-            problems.append(f"{category}: placeholder reason does not say 'not yet integrated' ({reason!r})")
+    """Milestone 4 inverts this check's original assertion.
 
-    unbuildable_filters = {
-        "relevant_tissue": target_ranking.RankingFilters(relevant_tissue="x"),
-        "target_family": target_ranking.RankingFilters(target_family="x"),
-    }
-    for name, filters in unbuildable_filters.items():
-        try:
-            target_ranking.rank_for_disease(disease_id, filters=filters)
-            problems.append(f"{name} filter did not raise — a silently-ignored filter is a regression")
-        except ValueError:
-            pass
-    return CheckResult("Unbuildable elements are explicit placeholders", problems)
+    Through Milestone 3, this asserted that pathway/expression/network were
+    stated placeholders and that both `relevant_tissue` and `target_family`
+    raised. Milestone 4 wired in Reactome/GTEx/STRING (milestone4_plan.md),
+    so the correct state is now the opposite for two of those three:
+    `UNAVAILABLE_EVIDENCE_CATEGORIES` must be EMPTY (a category reappearing
+    there would mean a regression back to placeholder rendering), and
+    `relevant_tissue` must filter rather than raise. `target_family` is
+    unaffected — it needs `target.targetClass`, unrelated to any of the
+    three sources this milestone integrated, and still correctly raises.
+    """
+    problems: list[str] = []
+    if target_ranking.UNAVAILABLE_EVIDENCE_CATEGORIES:
+        problems.append(
+            "UNAVAILABLE_EVIDENCE_CATEGORIES is non-empty: "
+            f"{sorted(target_ranking.UNAVAILABLE_EVIDENCE_CATEGORIES)} — Milestone 4 was supposed "
+            "to have built all of pathway/expression/network"
+        )
+
+    try:
+        target_ranking.rank_for_disease(
+            disease_id, filters=target_ranking.RankingFilters(relevant_tissue="x")
+        )
+    except ValueError as exc:
+        problems.append(f"relevant_tissue filter raised {exc!r} — it should filter, not raise, as of Milestone 4")
+
+    try:
+        target_ranking.rank_for_disease(
+            disease_id, filters=target_ranking.RankingFilters(target_family="x")
+        )
+        problems.append("target_family filter did not raise — a silently-ignored filter is a regression")
+    except ValueError:
+        pass
+
+    return CheckResult("Milestone 4 categories built; target_family still explicit", problems)
 
 
 def run_all_checks(diseases: list[DiseaseSpec] | None = None) -> list[CheckResult]:

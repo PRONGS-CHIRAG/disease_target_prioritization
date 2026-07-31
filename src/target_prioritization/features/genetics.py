@@ -30,6 +30,7 @@ from target_prioritization.utils.logging import get_logger
 __all__ = [
     "DIMENSION_PREFIX",
     "MISSING_PREFIX",
+    "add_cross_dimension_diversity",
     "build_dimension_scores",
     "build_evidence_diversity",
     "build_genetics_features",
@@ -152,6 +153,48 @@ def build_evidence_diversity(
             .cast(pl.Float64)
             .alias(f"{DIMENSION_PREFIX}evidence_diversity")
         )
+    )
+
+
+def add_cross_dimension_diversity(features: pl.DataFrame) -> pl.DataFrame:
+    """Add genetics+pathway and genetics+expression evidence co-occurrence flags.
+
+    Context.md §14.9 lists "genetics plus expression agreement" and "genetics
+    plus pathway agreement" among possible diversity features.
+    ``configs/features.yaml`` has declared ``diversity__genetics_and_pathway``
+    and ``diversity__genetics_and_expression`` since Milestone 1, but nothing
+    computed them until Milestone 4 wired ``features/pathways.py`` and
+    ``features/expression.py`` in. They need ``dim__genetics`` plus
+    ``missing__pathways``/``missing__expression``, which live on the WIDE
+    per-disease feature frame after those groups are joined — not on the long
+    ``evidence`` frame :func:`build_evidence_diversity` works from — hence
+    this is a separate function, called later in the assembly.
+
+    Args:
+        features: Must already carry ``dim__genetics``, ``missing__pathways``
+            and ``missing__expression`` (i.e. called from
+            ``build_features.build_disease_features`` after pathway and
+            expression features are joined in).
+
+    Returns:
+        *features* plus ``diversity__genetics_and_pathway`` and
+        ``diversity__genetics_and_expression`` (``Int8``, 1 iff the target
+        has both kinds of evidence, 0 otherwise — never null, since absence
+        of either side is itself a fact, not a missing measurement).
+    """
+    return features.with_columns(
+        (
+            pl.col(f"{DIMENSION_PREFIX}genetics").is_not_null()
+            & (pl.col(f"{MISSING_PREFIX}pathways") == 0)
+        )
+        .cast(pl.Int8)
+        .alias("diversity__genetics_and_pathway"),
+        (
+            pl.col(f"{DIMENSION_PREFIX}genetics").is_not_null()
+            & (pl.col(f"{MISSING_PREFIX}expression") == 0)
+        )
+        .cast(pl.Int8)
+        .alias("diversity__genetics_and_expression"),
     )
 
 

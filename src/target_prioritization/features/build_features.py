@@ -34,10 +34,14 @@ from target_prioritization.features.druggability import (
     build_druggability_features,
     build_safety_features,
 )
+from target_prioritization.features.expression import build_expression_features
 from target_prioritization.features.genetics import (
+    add_cross_dimension_diversity,
     build_dimension_scores,
     build_evidence_diversity,
 )
+from target_prioritization.features.network import build_network_features
+from target_prioritization.features.pathways import build_pathway_features
 from target_prioritization.utils.logging import get_logger, log_dropped
 
 __all__ = [
@@ -534,9 +538,10 @@ def build_disease_features(
     include_raw_datasource_scores: bool = False,
     con: duckdb.DuckDBPyConnection | None = None,
 ) -> tuple[pl.DataFrame, dict[str, Any]]:
-    """Build the Milestone 1 feature table for a single disease (Context.md §36).
+    """Build the disease feature table (Context.md §36; Milestone 4 adds
+    pathway/network/expression — see milestone4_plan.md).
 
-    Open Targets only. Assembly order:
+    Assembly order:
 
     1. Candidate generation — every target Open Targets associates with the
        disease (Context.md §13).
@@ -544,9 +549,16 @@ def build_disease_features(
     3. Collapse the remainder into scored dimensions (max within dimension).
     4. Add the evidence-diversity term (Context.md §14.9).
     5. Join druggability and safety from ``target_prioritisation``.
-    6. Join gene symbols and names.
-    7. Stamp ``dataset_version`` and ``extraction_date`` (Context.md §33).
-    8. Assert no leakage before returning.
+    6. Join pathway (Reactome), network (STRING) and expression (GTEx)
+       features (Context.md §28 Step 9; milestone4_plan.md). Disease-agnostic
+       parts of network/expression are memoized inside those modules, so
+       calling this once per disease from :func:`build_feature_table` does
+       not repeat the expensive STRING/GTEx computation ten times.
+    7. Add the genetics+pathway / genetics+expression diversity
+       co-occurrence flags (Context.md §14.9) — needs the frame from step 6.
+    8. Join gene symbols and names.
+    9. Stamp ``dataset_version`` and ``extraction_date`` (Context.md §33).
+    10. Assert no leakage before returning.
 
     Args:
         disease: The disease to build for; must have a resolved ``efo_id``.
@@ -611,6 +623,9 @@ def build_disease_features(
         druggability = build_druggability_features(target_ids, config, con)
         safety = build_safety_features(target_ids, config, con)
         metadata = open_targets.load_target_metadata(target_ids, con)
+        pathways = build_pathway_features(target_ids, config)
+        network = build_network_features(target_ids, config)
+        expression = build_expression_features(target_ids, disease.relevant_tissues)
 
         features = dimensions.join(diversity, on="target_id", how="left")
 
@@ -624,7 +639,13 @@ def build_disease_features(
         features = (
             features.join(druggability, on="target_id", how="left")
             .join(safety, on="target_id", how="left")
-            .join(metadata, on="target_id", how="left")
+            .join(pathways, on="target_id", how="left")
+            .join(network, on="target_id", how="left")
+            .join(expression, on="target_id", how="left")
+        )
+        features = add_cross_dimension_diversity(features)
+        features = (
+            features.join(metadata, on="target_id", how="left")
             .with_columns(
                 pl.lit(disease.efo_id).alias("disease_id"),
                 pl.lit(disease.name).alias("disease_name"),
@@ -672,6 +693,9 @@ def build_disease_features(
             "scored_dimensions": list(config.scored_dimensions),
             "evidence_diversity_saturation": saturation,
             "n_unresolved_symbols": unresolved.height,
+            "n_missing_pathways": int(features.get_column("missing__pathways").sum()),
+            "n_missing_network": int(features.get_column("missing__network").sum()),
+            "n_missing_expression": int(features.get_column("missing__expression").sum()),
         }
         return features, provenance
     finally:

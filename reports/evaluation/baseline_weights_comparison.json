@@ -1,0 +1,212 @@
+{
+  "milestone_1_weights": {
+    "weights": {
+      "genetics": 0.4,
+      "evidence_diversity": 0.2,
+      "functional": 0.15,
+      "literature": 0.15,
+      "druggability": 0.1
+    },
+    "primary": {
+      "precision_at_5": 0.32,
+      "precision_at_10": 0.22,
+      "recall_at_10": 0.0109397642,
+      "recall_at_20": 0.0191173242,
+      "map": 0.0827297554,
+      "mrr": 0.6977777778,
+      "ndcg_at_10": 0.288038745,
+      "ndcg_at_20": 0.249874043,
+      "hit_rate": 1.0,
+      "roc_auc": 0.7551598527,
+      "pr_auc": 0.0827138121,
+      "precision": 0.1581376302,
+      "recall": 0.0267796969,
+      "f1": 0.042764479,
+      "brier_score": 0.0357585523
+    },
+    "novel_only": {
+      "precision_at_5": 0.04,
+      "precision_at_10": 0.04,
+      "recall_at_10": 0.0062389553,
+      "recall_at_20": 0.0083666148,
+      "map": 0.0125100353,
+      "mrr": 0.1736823309,
+      "ndcg_at_10": 0.0500973267,
+      "ndcg_at_20": 0.0393105569,
+      "hit_rate": 0.3,
+      "roc_auc": 0.6834229122,
+      "pr_auc": 0.0125205981,
+      "precision": 0.0199313979,
+      "recall": 0.0132920086,
+      "f1": 0.0109499552,
+      "brier_score": 0.0219912426
+    }
+  },
+  "baseline_weights": {
+    "weights": {
+      "genetics": 0.3,
+      "pathways": 0.2,
+      "expression": 0.15,
+      "network": 0.15,
+      "literature": 0.1,
+      "druggability": 0.1
+    },
+    "primary": {
+      "precision_at_5": 0.28,
+      "precision_at_10": 0.25,
+      "recall_at_10": 0.0130454969,
+      "recall_at_20": 0.019145503,
+      "map": 0.0949927233,
+      "mrr": 0.7125,
+      "ndcg_at_10": 0.3024763342,
+      "ndcg_at_20": 0.2565910215,
+      "hit_rate": 1.0,
+      "roc_auc": 0.7996804217,
+      "pr_auc": 0.0949927233,
+      "precision": 0.0906892827,
+      "recall": 0.2775659669,
+      "f1": 0.1344660122,
+      "brier_score": 0.1069523497
+    },
+    "novel_only": {
+      "precision_at_5": 0.02,
+      "precision_at_10": 0.03,
+      "recall_at_10": 0.0051751255,
+      "recall_at_20": 0.0129120694,
+      "map": 0.0100271701,
+      "mrr": 0.0645009098,
+      "ndcg_at_10": 0.0237583508,
+      "ndcg_at_20": 0.0294839978,
+      "hit_rate": 0.3,
+      "roc_auc": 0.6878208383,
+      "pr_auc": 0.0100271701,
+      "precision": 0.0072669737,
+      "recall": 0.1363312151,
+      "f1": 0.0134791306,
+      "brier_score": 0.1043430065
+    }
+  },
+  "baseline_weights_ablations": {
+    "no_literature": {
+      "dropped": [
+        "literature"
+      ],
+      "primary": {
+        "precision_at_5": 0.28,
+        "precision_at_10": 0.2,
+        "recall_at_10": 0.0113088614,
+        "recall_at_20": 0.0183203186,
+        "map": 0.0887880791,
+        "mrr": 0.6535353535,
+        "ndcg_at_10": 0.2544358541,
+        "ndcg_at_20": 0.2210214569,
+        "hit_rate": 0.9,
+        "roc_auc": 0.7941037648,
+        "pr_auc": 0.0887880791,
+        "precision": 0.0784210437,
+        "recall": 0.3188218875,
+        "f1": 0.1228741749,
+        "brier_score": 0.1193720335
+      },
+      "novel_only": {
+        "precision_at_5": 0.02,
+        "precision_at_10": 0.02,
+        "recall_at_10": 0.0041112957,
+        "recall_at_20": 0.0051751255,
+        "map": 0.008318245,
+        "mrr": 0.0513748343,
+        "ndcg_at_10": 0.0151397341,
+        "ndcg_at_20": 0.0137327968,
+        "hit_rate": 0.2,
+        "roc_auc": 0.67595736,
+        "pr_auc": 0.008318245,
+        "precision": 0.0060349617,
+        "recall": 0.1380783154,
+        "f1": 0.0113152647,
+        "brier_score": 0.1176773462
+      }
+    },
+    "no_network": {
+      "dropped": [
+        "network"
+      ],
+      "primary": {
+        "precision_at_5": 0.3,
+        "precision_at_10": 0.24,
+        "recall_at_10": 0.0127545702,
+        "recall_at_20": 0.0194440236,
+        "map": 0.0908083246,
+        "mrr": 0.7625,
+        "ndcg_at_10": 0.3024559361,
+        "ndcg_at_20": 0.2597819111,
+        "hit_rate": 1.0,
+        "roc_auc": 0.7760712176,
+        "pr_auc": 0.0908103164,
+        "precision": 0.109865513,
+        "recall": 0.1493648008,
+        "f1": 0.1234341751,
+        "brier_score": 0.0819958165
+      },
+      "novel_only": {
+        "precision_at_5": 0.02,
+        "precision_at_10": 0.03,
+        "recall_at_10": 0.0051751255,
+        "recall_at_20": 0.0129120694,
+        "map": 0.0099139418,
+        "mrr": 0.058279385,
+        "ndcg_at_10": 0.0227938262,
+        "ndcg_at_20": 0.028914193,
+        "hit_rate": 0.3,
+        "roc_auc": 0.6814080858,
+        "pr_auc": 0.009932761,
+        "precision": 0.0091335683,
+        "recall": 0.0710298372,
+        "f1": 0.0154621721,
+        "brier_score": 0.0762425744
+      }
+    },
+    "genetics_only": {
+      "dropped": [
+        "pathways",
+        "expression",
+        "network",
+        "literature",
+        "druggability"
+      ],
+      "primary": {
+        "precision_at_5": 0.26,
+        "precision_at_10": 0.21,
+        "recall_at_10": 0.0122670609,
+        "recall_at_20": 0.0175504735,
+        "map": 0.0356465808,
+        "mrr": 0.6033333333,
+        "ndcg_at_10": 0.2399964651,
+        "ndcg_at_20": 0.187469172,
+        "hit_rate": 1.0,
+        "roc_auc": 0.49516812,
+        "pr_auc": 0.0339101027,
+        "precision": 0.0740926074,
+        "recall": 0.0418453401,
+        "f1": 0.037120134,
+        "brier_score": 0.0377280226
+      },
+      "novel_only": {
+        "precision_at_5": 0.06,
+        "precision_at_10": 0.03,
+        "recall_at_10": 0.0051751255,
+        "recall_at_20": 0.00972058,
+        "map": 0.0062257023,
+        "mrr": 0.1523079452,
+        "ndcg_at_10": 0.0400023248,
+        "ndcg_at_20": 0.0291026914,
+        "hit_rate": 0.3,
+        "roc_auc": 0.4835004819,
+        "pr_auc": 0.0059006492,
+        "precision": 0.0157517268,
+        "recall": 0.0299803203,
+        "f1": 0.0095041154,
+        "brier_score": 0.0170502579
+      }
+    }
+  }
+}

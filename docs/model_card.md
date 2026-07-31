@@ -2,8 +2,10 @@
 
 Per Context.md §33 and Project_info.md §42. Describes the Milestone 2
 (Context.md §37) XGBoost model, `models/trained/xgboost_baseline.json`,
-refit on all ten configured diseases after leave-one-disease-out evaluation.
-Generated from `reports/evaluation/baseline_metrics.json`; see
+refit on all ten configured diseases after leave-one-disease-out evaluation
+— retrained on Milestone 4's expanded feature set (Reactome/GTEx/STRING;
+milestone4_plan.md), same architecture and hyperparameters. Generated from
+`reports/evaluation/baseline_metrics.json`; see
 [../reports/evaluation/baseline_report.md](../reports/evaluation/baseline_report.md)
 for the full analysis.
 
@@ -56,9 +58,9 @@ Leave-one-disease-out, 10 folds. Primary metric: NDCG@10.
 | Method | NDCG@10 (primary) | NDCG@10 (novel-only) | Beats random |
 | --- | ---: | ---: | ---: |
 | Weighted baseline | 0.288 | 0.050 | 9/10 |
-| Logistic regression | 0.501 | 0.067 | 10/10 |
-| Random forest | 0.529 | 0.000 | 10/10 |
-| **XGBoost (this model)** | **0.696** | **0.009** | 10/10 |
+| Logistic regression | 0.487 | 0.062 | 10/10 |
+| Random forest | 0.865 | 0.000 | 10/10 |
+| **XGBoost (this model)** | **0.901** | **0.000** | 10/10 |
 | OT overall score | 0.752 | 0.093 | 10/10 |
 | Random | 0.031 | 0.000 | — |
 | Target popularity | 0.873 | 0.000 | 10/10 |
@@ -66,13 +68,21 @@ Leave-one-disease-out, 10 folds. Primary metric: NDCG@10.
 **Read the two NDCG@10 columns together, not separately.** "Novel-only"
 re-scores against [`novel_only_labels`](../src/target_prioritization/models/evaluate.py),
 which relabels every positive that recurs across the ten configured diseases
-to negative. This model's score falls from 0.696 to 0.009 under that
-condition — most of its apparent ranking quality is explained by learning
-which targets are drug targets *somewhere*, not by disease-specific
-evidence. The `target_popularity` baseline (no learning at all, just a count
-of cross-disease positives) outscores this model on the primary metric.
-Treat this model's ranking as "plausibly druggable, well-precedented target"
-more than "target specifically relevant to the queried disease."
+to negative. Most of this model's apparent ranking quality is explained by
+learning which targets are drug targets *somewhere*, not by disease-specific
+evidence — worse now than at Milestone 2 (0.696/0.009), not better: Milestone
+4's Reactome/GTEx/STRING features (`net__weighted_degree`, `expr__*`,
+`path__*`) are disease-invariant gene properties, and XGBoost leaned on them
+hard enough to push novel-only NDCG@10 to **exactly 0.000**, while the
+primary score rose to 0.901. `net__weighted_degree` is now this model's
+single highest-SHAP feature (below) — the network analogue of the same
+cross-disease-popularity problem literature and target-count features
+already had, now measurably worse. The `target_popularity` baseline (no
+learning at all, just a count of cross-disease positives) still outscores
+this model's *training signal*, even though this model's primary NDCG now
+edges past it. Treat this model's ranking as "plausibly druggable,
+well-studied, well-connected target" more than "target specifically relevant
+to the queried disease" — more so than at Milestone 2, not less.
 
 Full per-disease breakdown: `reports/evaluation/baseline_metrics.json`.
 
@@ -91,8 +101,16 @@ presence through the back door — *improves* NDCG@10 by 0.047. See
 full explanation; this is not the modest positive contribution Milestone 1's
 finding for the rule-based score would suggest.
 
-`no_network` is not applicable in this milestone (no STRING data — Context.md
-§28 Step 9 is still pending); `genetics_only` was not run.
+`no_network` and `genetics_only` (`configs/model.yaml`'s `evaluation.ablations`,
+declared since Milestone 2 but never wired to a runner until now) are run
+against `baseline_weights` via `scripts/compare_baseline_weights.py`, since
+`no_network` only means something once a `network` weight exists to drop
+(`milestone_1_weights` has no `network` key at all — this is why it was "not
+applicable" before Milestone 4). Results:
+`reports/evaluation/baseline_weights_comparison.json`. This is a
+weight-drop-and-renormalize ablation on the weighted baseline, a different
+mechanism from the literature ablation above (which drops feature *columns*
+and retrains XGBoost from scratch) — see that script's docstring for why.
 
 ## Global feature importance (mean |SHAP|, margin space)
 
@@ -103,10 +121,15 @@ every run — see the top-10 table in
 [baseline_report.md §7](../reports/evaluation/baseline_report.md). Not
 reproduced here as a static list: this section previously hand-copied a
 top-5 snapshot, which could silently go stale the next time the model was
-retrained. The pattern that table shows is stable across runs: the top
-features are largely **target-intrinsic** (is this protein druggable, how
-constrained is the gene, how much has it been studied) rather than
-disease-specific — consistent with the novel-only collapse above.
+retrained. The pattern that table shows is stable across runs, and Milestone
+4 sharpened it rather than changing it: the top features are largely
+**target-intrinsic** (is this protein druggable, how constrained is the
+gene, how much has it been studied, and — new since Milestone 4 — how many
+STRING interactions it has and how highly expressed it is) rather than
+disease-specific. `net__weighted_degree` (STRING interaction count weighted
+by confidence) is now the single highest-SHAP feature of any kind, ahead of
+`prio__has_ligand` — consistent with, and the concrete cause of, the
+novel-only collapse to 0.000 above.
 
 ## Calibration
 
@@ -137,7 +160,9 @@ work.
 ## Known failure modes
 
 - **Cross-disease popularity dominance** (above) — the central finding of
-  this milestone.
+  Milestone 2, sharpened by Milestone 4: novel-only NDCG@10 went from 0.009
+  to exactly 0.000 once disease-invariant network/expression/pathway
+  features were added, with `net__weighted_degree` now the top SHAP feature.
 - **Undefined for zero-positive-in-fold metrics** where they'd occur;
   handled by exclusion from the aggregate mean rather than crashing, logged
   via `metric_undefined_for_some_diseases`.

@@ -281,15 +281,25 @@ groups:
       - assoc_ds__europepmc_score
       - assoc_ds__europepmc_evidence_count
 
+  # path__n_disease_relevant_pathways and path__overlap_with_known_disease_genes
+  # (and, below, net__n_disease_gene_neighbours and
+  # net__min_distance_to_disease_gene) are deliberately NOT declared here.
+  # All four need a per-disease "known disease genes" seed set for
+  # guilt-by-association, and this repo has no leakage-reviewed definition of
+  # one across all ten configured diseases (the only precedent — five
+  # hardcoded Parkinson's genes in milestone1.py — is documented there as a
+  # pipeline sanity check, not a reusable feature input). Deferred rather
+  # than built on an unreviewed seed source — see milestone4_plan.md §2.1.
+  # The underlying utility functions (pathways.pathway_overlap_with_known_genes,
+  # network.distance_to_disease_genes) are implemented and tested; only the
+  # question of what gene list to pass them is open.
   pathways:
-    description: Reactome pathway membership and overlap (Context.md §14.3).
+    description: Reactome pathway membership (Context.md §14.3).
     source: reactome
     missing_indicator: true
     log_transform: false
     features:
       - path__n_pathways
-      - path__n_disease_relevant_pathways
-      - path__overlap_with_known_disease_genes
       - assoc_ds__reactome_score
 
   expression:
@@ -315,8 +325,6 @@ groups:
       - net__weighted_degree
       - net__pagerank
       - net__betweenness
-      - net__n_disease_gene_neighbours
-      - net__min_distance_to_disease_gene
       - net__mean_edge_confidence
 
   druggability:

@@ -3,11 +3,13 @@
 Combines the weighted baseline's exact contribution breakdown and the
 held-out XGBoost model's live SHAP explanation (services.evidence_summary),
 plus everything Context.md §21/§37/§38.4 ask for that this milestone can
-actually build. Elements the pipeline does not build yet — pathway
-membership, tissue expression, protein-interaction summary, direction of
-effect, a calibrated confidence level — render as explicit placeholders
-naming what would be needed (milestone3_plan.md §1), never as a blank or a
-zero.
+actually build. Pathway membership, tissue expression and a
+protein-interaction summary were the ones this page rendered as placeholders
+through Milestone 3; Milestone 4 wired in Reactome/GTEx/STRING
+(milestone4_plan.md), so those three now render real evidence. Direction of
+effect and a calibrated confidence level remain unbuilt — unrelated to
+Reactome/GTEx/STRING — and still render as explicit placeholders naming what
+would be needed, never as a blank or a zero.
 """
 
 from __future__ import annotations
@@ -25,9 +27,6 @@ from target_prioritization.services.target_ranking import (
 from target_prioritization.viz import build_evidence_breakdown_figure, build_evidence_radar_figure
 
 _NOT_BUILDABLE = {
-    "Tissue expression": "needs GTEx (Context.md §28 Step 9)",
-    "Pathway membership": "needs Reactome (Context.md §28 Step 9)",
-    "Protein-interaction summary": "needs STRING (Context.md §28 Step 9)",
     "Direction of effect": "nothing in the pipeline computes this yet (Context.md §37.6)",
     "Confidence level": "no calibrated uncertainty estimate exists yet (Context.md §30.13, §37.1)",
 }

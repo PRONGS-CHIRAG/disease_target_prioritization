@@ -12,6 +12,9 @@
       "extraction_date": "2026-07-30",
       "n_candidates": 13289,
       "n_dropped_label_only": 14,
+      "n_missing_expression": 108,
+      "n_missing_network": 640,
+      "n_missing_pathways": 4617,
       "n_scored": 13275,
       "n_unresolved_symbols": 0,
       "scored_dimensions": [
@@ -32,6 +35,9 @@
       "extraction_date": "2026-07-30",
       "n_candidates": 15586,
       "n_dropped_label_only": 8,
+      "n_missing_expression": 164,
+      "n_missing_network": 2065,
+      "n_missing_pathways": 6487,
       "n_scored": 15578,
       "n_unresolved_symbols": 0,
       "scored_dimensions": [
@@ -52,6 +58,9 @@
       "extraction_date": "2026-07-30",
       "n_candidates": 6252,
       "n_dropped_label_only": 40,
+      "n_missing_expression": 50,
+      "n_missing_network": 954,
+      "n_missing_pathways": 2503,
       "n_scored": 6212,
       "n_unresolved_symbols": 0,
       "scored_dimensions": [
@@ -72,6 +81,9 @@
       "extraction_date": "2026-07-30",
       "n_candidates": 4340,
       "n_dropped_label_only": 170,
+      "n_missing_expression": 19,
+      "n_missing_network": 102,
+      "n_missing_pathways": 939,
       "n_scored": 4170,
       "n_unresolved_symbols": 0,
       "scored_dimensions": [
@@ -92,6 +104,9 @@
       "extraction_date": "2026-07-30",
       "n_candidates": 10918,
       "n_dropped_label_only": 109,
+      "n_missing_expression": 96,
+      "n_missing_network": 1259,
+      "n_missing_pathways": 4046,
       "n_scored": 10809,
       "n_unresolved_symbols": 0,
       "scored_dimensions": [
@@ -112,6 +127,9 @@
       "extraction_date": "2026-07-30",
       "n_candidates": 8727,
       "n_dropped_label_only": 37,
+      "n_missing_expression": 70,
+      "n_missing_network": 337,
+      "n_missing_pathways": 2515,
       "n_scored": 8690,
       "n_unresolved_symbols": 0,
       "scored_dimensions": [
@@ -132,6 +150,9 @@
       "extraction_date": "2026-07-30",
       "n_candidates": 6963,
       "n_dropped_label_only": 67,
+      "n_missing_expression": 36,
+      "n_missing_network": 545,
+      "n_missing_pathways": 2316,
       "n_scored": 6896,
       "n_unresolved_symbols": 0,
       "scored_dimensions": [
@@ -152,6 +173,9 @@
       "extraction_date": "2026-07-30",
       "n_candidates": 7226,
       "n_dropped_label_only": 87,
+      "n_missing_expression": 50,
+      "n_missing_network": 315,
+      "n_missing_pathways": 1970,
       "n_scored": 7139,
       "n_unresolved_symbols": 0,
       "scored_dimensions": [
@@ -172,6 +196,9 @@
       "extraction_date": "2026-07-30",
       "n_candidates": 9906,
       "n_dropped_label_only": 55,
+      "n_missing_expression": 53,
+      "n_missing_network": 330,
+      "n_missing_pathways": 3077,
       "n_scored": 9851,
       "n_unresolved_symbols": 0,
       "scored_dimensions": [
@@ -192,6 +219,9 @@
       "extraction_date": "2026-07-30",
       "n_candidates": 7154,
       "n_dropped_label_only": 108,
+      "n_missing_expression": 44,
+      "n_missing_network": 1021,
+      "n_missing_pathways": 2810,
       "n_scored": 7046,
       "n_unresolved_symbols": 0,
       "scored_dimensions": [
@@ -202,7 +232,7 @@
     }
   },
   "n_diseases": 10,
-  "n_feature_columns": 54,
+  "n_feature_columns": 73,
   "n_total_rows": 89666,
   "sparse_columns_by_disease": {
     "MONDO_0004975": [

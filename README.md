@@ -19,6 +19,7 @@ Specification: [Context.md](Context.md) and [Project_info.md](Project_info.md).
 | Milestone 1 — Parkinson's rule-based baseline (Context §36) | **Done** — [implementation record](milestone1.md) |
 | Milestone 2 — multi-disease ML baseline (Context §37) | **Done** — [implementation record](milestone2.md), [full report](reports/evaluation/baseline_report.md) |
 | Milestone 3 — Streamlit app (Context §21) | **Done** — [implementation record](milestone3.md) |
+| Milestone 4 — Reactome/GTEx/STRING integration, FastAPI `/rank` (Context §28 Step 9) | **Done** — [implementation record](milestone4.md) |
 
 Implemented and tested: configuration, path and provenance utilities, the dataset
 downloader, identifier normalization, the leakage guard, the Open Targets readers,
@@ -28,15 +29,16 @@ label construction, the multi-disease feature table, leave-one-disease-out
 evaluation with ranking metrics, logistic regression / random forest / XGBoost
 training, non-learned comparison baselines, SHAP explanations, held-out
 per-disease fold models, the disease search / target ranking / evidence-card
-services, and the three-page Streamlit app.
-373 tests.
+services, the three-page Streamlit app, Reactome/GTEx/STRING pathway/expression/
+network features, and the FastAPI `/rank` endpoint.
+430 tests.
 
-Still stubs, and deliberately so: `features/pathways.py`, `expression.py` and
-`network.py` need Reactome, GTEx and STRING, which Context §28 Step 9 schedules
-*after* the baseline works — the app marks every element that depends on them
-as "not yet integrated" rather than showing a blank or a zero. `api/` is a
-typed contract still awaiting its implementation (§28 Step 11 specifies
-Streamlit, not FastAPI, for the MVP).
+No stubs remain. `features/pathways.py`, `expression.py` and `network.py` (Context
+§28 Step 9) and `api/main.py`'s `/rank` were the last four — see
+[milestone4.md](milestone4.md) for what was built, what was deliberately deferred
+(four columns needing a "known disease genes" seed set this repo has no
+leakage-reviewed definition for), and a real gap Milestone 4 discovered along the
+way (GTEx has no synovial-tissue data at all, affecting rheumatoid arthritis).
 
 ## Milestone 1 — the Parkinson's baseline
 
@@ -209,13 +211,17 @@ leave-one-disease-out numbers actually measured. Verified two ways in
 disease's fold model, *and* differs from what the all-disease refit would
 have produced.
 
-**Roughly a third of Context §21/§38's specified interface cannot be built
-yet.** Pathway, expression and network evidence need Reactome, GTEx and
-STRING — downloaded and validated (Milestone 1) but not yet integrated into
-the feature pipeline (Context §28 Step 9). Rather than a blank cell inviting
-"assessed and found absent," every such element renders an explicit
-"not yet integrated" placeholder, and the two filters that would need them
-(relevant tissue, target family) raise rather than silently doing nothing.
+**Roughly a third of Context §21/§38's specified interface could not be built
+at the time this milestone shipped.** Pathway, expression and network
+evidence needed Reactome, GTEx and STRING — downloaded and validated
+(Milestone 1) but not yet integrated into the feature pipeline (Context §28
+Step 9) — so every such element rendered an explicit "not yet integrated"
+placeholder rather than a blank cell inviting "assessed and found absent,"
+and the relevant-tissue and target-family filters raised rather than
+silently doing nothing. Milestone 4 closed the Reactome/GTEx/STRING gap and
+the relevant-tissue filter now works; target-family remains unbuildable
+(needs `target.targetClass`, unrelated to those three sources) — see
+[milestone4.md](milestone4.md).
 
 **A label-derived column must never reach a model, and the app is a new path
 to the same parquet that could let one leak in.** The clinical-trial and
@@ -423,15 +429,16 @@ src/target_prioritization/
   milestone1.py Milestone 1 orchestration, acceptance check, ablation
   milestone2.py Milestone 2 orchestration, LODO loop, acceptance check, leakage probe
   app_data.py   Milestone 3 app-facing precompute (held-out scores, popularity badge, metadata)
-  app_checks.py Milestone 3 acceptance checks (leakage boundary, fold routing, placeholders)
+  app_checks.py Milestone 3/4 acceptance checks (leakage boundary, fold routing, placeholders)
   reporting.py  Milestone 1 report generation + the hand-written gene notes
   reporting2.py Milestone 2 report generation
   viz.py        evidence-breakdown + popularity-comparison figures + evidence radar
   services/     disease_search, target_ranking (score-first-join-second), evidence_summary
-  api/          FastAPI — typed contract, not yet implemented (§28 Step 11 specifies Streamlit)
+  api/          FastAPI — /rank implemented on top of services/target_ranking (Milestone 4)
 app/         Streamlit — streamlit_app.py, common.py (shared state/caching), pages/
 scripts/     download_data, resolve_diseases, validate_data, build_dataset, run_milestone1,
-             train_model, evaluate_model, build_app_data, check_app, run_app, …
+             train_model, evaluate_model, build_app_data, check_app, run_app,
+             compare_baseline_weights, …
 reports/     generated reports + figures
 docs/        data dictionary, model card, dataset card, limitations, glossary
 ```

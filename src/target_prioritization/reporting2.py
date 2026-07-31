@@ -355,10 +355,14 @@ this table cannot drift from the model it describes.
 3. **Ten diseases only.** Generalisation to diseases outside
    `configs/diseases.yaml` is untested; leave-one-disease-out measures
    robustness across *these* ten, not universally.
-4. **No external datasets.** Reactome, GTEx and STRING are downloaded and
-   validated but unused (Context.md §28 Step 9 schedules them after this
-   baseline works) — pathway, tissue-expression and network evidence are
-   entirely absent from every model here.
+4. **Reactome/GTEx/STRING topology and expression features are disease-invariant
+   gene properties, learned by XGBoost as such.** Milestone 4 (milestone4_plan.md)
+   wired in `path__*`/`net__*`/`expr__*`; `net__weighted_degree` is now this
+   model's single highest-SHAP feature. Because the same gene has the identical
+   topology regardless of which disease is being ranked, this widens the
+   cross-disease popularity gap point 1 already describes rather than closing
+   it — see `reports/evaluation/baseline_weights_comparison.json` for the
+   weighted-baseline-side comparison, which does not have this problem.
 5. **Safety is not scored.** `prio__has_safety_event` and related columns are
    present in the feature table but never combined into any model's score
    (Context.md §14.7, §31.7) — a high-ranked target may still be unsafe to

@@ -42,6 +42,17 @@ def _features() -> pl.DataFrame:
             "missing__genetics": [0, 0, 1, 0],
             "missing__functional": [0, 1, 0, 0],
             "missing__druggability": [0, 0, 0, 1],
+            # Milestone 4's three built categories. Each of T2/T3/T4 is
+            # missing exactly one of these (in addition to its pre-existing
+            # milestone-1 gap), so app_evidence_completeness reads 4/6 for
+            # them and 6/6 for T1 — see test_app_evidence_completeness_denominator_is_six.
+            "missing__pathways": [0, 1, 0, 0],
+            "missing__network": [0, 0, 1, 0],
+            "missing__expression": [0, 0, 0, 1],
+            # T1 clearly above TPM_DETECTION_THRESHOLD (1.0), T2 clearly
+            # below, T3 above, T4 null (gene absent from GTEx or its
+            # disease's relevant_tissues didn't resolve).
+            "expr__relevant_tissue_tpm": [5.0, 0.5, 2.0, None],
             "prio__has_small_molecule_binder": [1, 0, 1, 0],
             "prio__has_safety_event": [None, -1, None, None],
         }
@@ -128,7 +139,7 @@ class TestRankForDisease:
             features=_features(),
             app_data=_app_data(),
         )
-        # T1: genetics+functional+druggability all present -> 3/6 = 0.5
+        # T1 has all six categories present -> 6/6 = 1.0.
         assert "T1" in {r.target_id for r in results}
 
     def test_exclude_safety_concerns_filter(self):
@@ -153,14 +164,19 @@ class TestRankForDisease:
         )
         assert {"T1", "T3", "T4"}.issubset({r.target_id for r in results})
 
-    def test_relevant_tissue_filter_raises_rather_than_silently_ignoring(self):
-        with pytest.raises(ValueError, match="not buildable"):
-            rank_for_disease(
-                DISEASE,
-                filters=RankingFilters(relevant_tissue="brain"),
-                features=_features(),
-                app_data=_app_data(),
-            )
+    def test_relevant_tissue_filter_keeps_targets_above_the_detection_threshold(self):
+        """Milestone 4: relevant_tissue is buildable now (expr__relevant_tissue_tpm
+        exists) — it filters, it no longer raises."""
+        results = rank_for_disease(
+            DISEASE,
+            weights=WEIGHTS,
+            filters=RankingFilters(relevant_tissue="brain"),
+            features=_features(),
+            app_data=_app_data(),
+        )
+        # T1 (5.0) and T3 (2.0) clear TPM_DETECTION_THRESHOLD; T2 (0.5) and
+        # T4 (null) do not.
+        assert {r.target_id for r in results} == {"T1", "T3"}
 
     def test_target_family_filter_raises_rather_than_silently_ignoring(self):
         with pytest.raises(ValueError, match="not buildable"):
@@ -187,17 +203,28 @@ class TestRankForDisease:
         results = rank_for_disease(DISEASE, weights=WEIGHTS, top_n=None, features=_features(), app_data=_app_data())
         assert len(results) == 4
 
-    def test_missing_evidence_includes_categorically_unavailable_and_per_target_missing(self):
+    def test_missing_evidence_is_per_target_only_now_all_six_are_built(self):
+        """As of Milestone 4, UNAVAILABLE_EVIDENCE_CATEGORIES is empty — every
+        category in a target's missing_evidence reflects that SPECIFIC
+        target lacking that evidence, not a categorical, every-target gap."""
         results = rank_for_disease(DISEASE, weights=WEIGHTS, features=_features(), app_data=_app_data())
-        t3 = next(r for r in results if r.target_id == "T3")  # missing__genetics=1 for T3
-        assert set(UNAVAILABLE_EVIDENCE_CATEGORIES).issubset(t3.missing_evidence)
-        assert "genetics" in t3.missing_evidence
+        assert UNAVAILABLE_EVIDENCE_CATEGORIES == {}
+
+        t3 = next(r for r in results if r.target_id == "T3")  # missing__genetics=1, missing__network=1
+        assert set(t3.missing_evidence) == {"genetics", "network"}
+
+        t1 = next(r for r in results if r.target_id == "T1")  # nothing missing
+        assert t1.missing_evidence == []
 
     def test_app_evidence_completeness_denominator_is_six(self):
         results = rank_for_disease(DISEASE, weights=WEIGHTS, features=_features(), app_data=_app_data())
         t1 = next(r for r in results if r.target_id == "T1")
-        # T1 has genetics, functional, druggability all present (3 built categories).
-        assert t1.app_evidence_completeness == pytest.approx(3 / len(APP_EVIDENCE_CATEGORIES))
+        # T1 has all six built categories present.
+        assert t1.app_evidence_completeness == pytest.approx(6 / len(APP_EVIDENCE_CATEGORIES))
+        assert len(APP_EVIDENCE_CATEGORIES) == 6
+
+        t3 = next(r for r in results if r.target_id == "T3")  # missing genetics + network
+        assert t3.app_evidence_completeness == pytest.approx(4 / 6)
 
     def test_n_other_diseases_positive_is_attached_from_app_data(self):
         results = rank_for_disease(DISEASE, weights=WEIGHTS, features=_features(), app_data=_app_data())
