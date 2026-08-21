@@ -21,8 +21,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [diseaseId] = useDiseaseId();
 
   return (
-    <div className="flex h-full min-h-screen">
-      <aside className="flex w-72 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
+    <div className="flex min-h-screen flex-col lg:h-full lg:flex-row">
+      <aside className="flex w-full shrink-0 flex-col border-b border-sidebar-border bg-sidebar lg:w-72 lg:border-b-0 lg:border-r">
         <div className="flex items-center gap-2 border-b border-sidebar-border px-4 py-4">
           <FlaskConical className="size-4 text-primary" aria-hidden />
           <div className="min-w-0">
@@ -40,7 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <DiseasePicker />
         </div>
 
-        <nav className="flex flex-col gap-0.5 px-2 py-3">
+        <nav className="flex flex-row flex-wrap gap-0.5 px-2 py-3 lg:flex-col">
           {NAV_ITEMS.map((item) => {
             const href = diseaseId ? `${item.href}?disease=${encodeURIComponent(diseaseId)}` : item.href;
             const active = pathname === item.href;
@@ -68,7 +68,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="min-w-0 flex-1 bg-background">
-        <div className="mx-auto max-w-6xl px-8 py-8">{children}</div>
+        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</div>
       </main>
     </div>
   );

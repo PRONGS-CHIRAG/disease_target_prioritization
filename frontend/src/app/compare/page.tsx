@@ -16,6 +16,7 @@ import { useMeta } from "@/hooks/use-meta";
 import { useTargetIds } from "@/hooks/use-target-ids";
 import { apiErrorMessage } from "@/lib/api-client";
 import { DIMENSION_ORDER } from "@/lib/dimensions";
+import { cn } from "@/lib/utils";
 
 // nuqs's useQueryState reads useSearchParams internally, which bails out
 // of static prerendering without a Suspense boundary — required even for
@@ -28,6 +29,20 @@ export default function ComparePage() {
     </Suspense>
   );
 }
+
+// Static class strings, not an interpolated `xl:grid-cols-${n}` — Tailwind
+// only emits utilities it can see literally in the source. One card per row
+// on phones, two once there is room, and the full side-by-side spread only
+// on wide viewports: four 254px columns is the widest this page's
+// max-w-6xl shell can give each card, and the card's own container queries
+// (evidence-card.tsx) collapse its internals to a single column at that
+// width rather than letting labels and numbers collide.
+const COMPARE_GRID_COLS: Record<number, string> = {
+  1: "grid-cols-1",
+  2: "grid-cols-1 sm:grid-cols-2",
+  3: "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3",
+  4: "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4",
+};
 
 function CompareContent() {
   const [diseaseId] = useDiseaseId();
@@ -117,10 +132,7 @@ function CompareContent() {
         </table>
       </div>
 
-      <div
-        className="grid grid-cols-1 gap-6"
-        style={{ gridTemplateColumns: `repeat(${targetIds.length}, minmax(0, 1fr))` }}
-      >
+      <div className={cn("grid gap-6", COMPARE_GRID_COLS[targetIds.length] ?? "grid-cols-1 sm:grid-cols-2")}>
         {results.map((result, i) => {
           const targetId = targetIds[i];
           return (
