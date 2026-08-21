@@ -20,6 +20,13 @@ data/**
 !data/processed/disease_target_features.parquet
 !data/processed/labels.parquet
 !data/processed/app_scores.parquet
+# Browsable evidence detail (Context.md §21) — presentation artifacts built by
+# scripts/build_evidence_detail.py from raw Reactome/GTEx/STRING, which are NOT
+# in the container image. Tracked for the same reason app_scores.parquet is: a
+# clean checkout must be able to build a working image.
+!data/processed/target_pathways.parquet
+!data/processed/target_tissue_expression.parquet
+!data/processed/target_interactions.parquet
 
 # Models (artifacts, not source) EXCEPT the Milestone 2 deliverable
 # (Context.md §37) and the Milestone 3 held-out fold models (Context.md §21,

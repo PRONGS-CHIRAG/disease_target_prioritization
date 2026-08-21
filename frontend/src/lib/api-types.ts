@@ -162,6 +162,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/evidence/detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Evidence Detail
+         * @description The browsable half of Context.md §21's target-detail view.
+         *
+         *     Named Reactome pathways, per-tissue GTEx expression and high-confidence
+         *     STRING partners — the rows behind ``path__n_pathways``, ``expr__*`` and
+         *     ``net__*``, which the feature table only carries as aggregates.
+         *
+         *     A GET with query parameters rather than a POST like ``/api/evidence``:
+         *     this response does not depend on the scenario weights, so it is safely
+         *     cacheable and needs no body. Kept off ``/api/evidence`` so ``/compare``,
+         *     which renders four evidence cards and none of this, does not pay for it.
+         */
+        get: operations["evidence_detail_api_evidence_detail_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -246,6 +275,60 @@ export interface components {
              * @default
              */
             note: string;
+        };
+        /** EvidenceDetailResponse */
+        EvidenceDetailResponse: {
+            /** Disease Id */
+            disease_id: string;
+            /** Disease Name */
+            disease_name: string;
+            /** Target Id */
+            target_id: string;
+            /** Gene Symbol */
+            gene_symbol: string;
+            /** Pathway Groups */
+            pathway_groups?: components["schemas"]["PathwayGroupResponse"][];
+            /**
+             * N Root Categories
+             * @description Equals `path__n_pathways` by construction — both count distinct root Reactome categories, from one shared code path.
+             */
+            n_root_categories: number;
+            /**
+             * Tissues
+             * @description Every GTEx tissue, descending by median TPM.
+             */
+            tissues?: components["schemas"]["TissueValueResponse"][];
+            /**
+             * Relevant Tissues Matched
+             * @description Configured tissue name -> the GTEx columns it matched.
+             */
+            relevant_tissues_matched?: {
+                [key: string]: string[];
+            };
+            /**
+             * Relevant Tissues Unmatched
+             * @description Configured tissues with NO GTEx column — GTEx has no synovial data at all, so rheumatoid arthritis lands here (milestone4.md §1). Render as explicit absence, never as a blank.
+             */
+            relevant_tissues_unmatched?: string[];
+            /** Partners */
+            partners?: components["schemas"]["InteractionPartnerResponse"][];
+            /**
+             * Partner Min Score
+             * @description STRING confidence floor applied when the partner list was built.
+             */
+            partner_min_score: number;
+            literature: components["schemas"]["LiteratureSummaryResponse"];
+            /**
+             * Not Buildable
+             * @description Detail items nothing in the pipeline produces yet, including supporting literature (Context.md §30.1).
+             */
+            not_buildable?: {
+                [key: string]: string;
+            };
+            /** Dataset Version */
+            dataset_version: string;
+            /** Limitations */
+            limitations?: string[];
         };
         /** EvidenceItemResponse */
         EvidenceItemResponse: {
@@ -361,6 +444,41 @@ export interface components {
              */
             model_loaded: boolean;
         };
+        /** InteractionPartnerResponse */
+        InteractionPartnerResponse: {
+            /** Target Id */
+            target_id: string;
+            /** Gene Symbol */
+            gene_symbol: string;
+            /**
+             * Score
+             * @description STRING combined score, 0-1000.
+             */
+            score: number;
+            /**
+             * Is Candidate
+             * @description Whether this partner is itself a candidate for the SELECTED disease. False means do not link to its evidence page — there is no (disease, target) row for it and /api/evidence would 404.
+             */
+            is_candidate: boolean;
+        };
+        /**
+         * LiteratureSummaryResponse
+         * @description The only literature signal this repo has: a co-mention score.
+         *
+         *     Named papers are Context.md §30.1 and are declared absent through
+         *     `not_buildable`, not represented by an empty list here.
+         */
+        LiteratureSummaryResponse: {
+            /** Europepmc Score */
+            europepmc_score?: number | null;
+            /** Europepmc Evidence Count */
+            europepmc_evidence_count?: number | null;
+            /**
+             * Search Url
+             * @description A Europe PMC search for this gene and disease. Hands the reader the query; it is not literature retrieval.
+             */
+            search_url: string;
+        };
         /**
          * MetaResponse
          * @description Every UI-facing constant the frontend needs at boot, fetched once
@@ -397,6 +515,27 @@ export interface components {
             };
             /** Limitations */
             limitations?: string[];
+        };
+        /** PathwayGroupResponse */
+        PathwayGroupResponse: {
+            /** Root Pathway Id */
+            root_pathway_id: string;
+            /** Root Pathway Name */
+            root_pathway_name: string;
+            /** Pathways */
+            pathways?: components["schemas"]["PathwayRefResponse"][];
+        };
+        /** PathwayRefResponse */
+        PathwayRefResponse: {
+            /** Pathway Id */
+            pathway_id: string;
+            /** Name */
+            name: string;
+            /**
+             * Url
+             * @description Reactome's own page for this pathway.
+             */
+            url: string;
         };
         /** RankedTargetResponse */
         RankedTargetResponse: {
@@ -548,6 +687,21 @@ export interface components {
             weights: {
                 [key: string]: number;
             };
+        };
+        /** TissueValueResponse */
+        TissueValueResponse: {
+            /**
+             * Tissue
+             * @description GTEx tissue column name, e.g. `Brain_Cortex`.
+             */
+            tissue: string;
+            /** Median Tpm */
+            median_tpm: number;
+            /**
+             * Is Relevant
+             * @description True when this tissue is one `configs/diseases.yaml` names as relevant for the selected disease — matched by the same function that produced `expr__relevant_tissue_tpm`, so highlight and feature cannot disagree.
+             */
+            is_relevant: boolean;
         };
         /** ValidationError */
         ValidationError: {
@@ -766,6 +920,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EvidenceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evidence_detail_api_evidence_detail_get: {
+        parameters: {
+            query: {
+                disease_id: string;
+                target_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceDetailResponse"];
                 };
             };
             /** @description Validation Error */

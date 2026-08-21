@@ -20,6 +20,9 @@ verify:  ## Re-check downloaded files against local and upstream checksums
 resolve:  ## Resolve disease names to Open Targets IDs
 	uv run python scripts/resolve_diseases.py
 
+evidence-detail:  ## Rebuild the browsable evidence-detail artifacts (Context.md §21)
+	uv run python scripts/build_evidence_detail.py
+
 validate:  ## Check every source parses and every identifier join connects
 	uv run python scripts/validate_data.py
 

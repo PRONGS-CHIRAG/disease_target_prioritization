@@ -42,6 +42,7 @@ __all__ = [
     "OVERLAP_COLUMN",
     "PATHWAY_COUNT_SATURATION",
     "build_pathway_features",
+    "pathway_memberships",
     "pathway_overlap_with_known_genes",
 ]
 
@@ -117,6 +118,35 @@ def _with_root_pathway(mapping: pl.DataFrame, relations: pl.DataFrame) -> pl.Dat
     return mapping.with_columns(
         pl.col("pathway_id").map_elements(root_of, return_dtype=pl.String).alias("root_pathway_id")
     )
+
+
+def pathway_memberships(gene_ids: list[str]) -> pl.DataFrame:
+    """Reactome memberships for *gene_ids*, each row carrying its root category.
+
+    The single source of truth for "which pathways is this gene in, and which
+    root category does each roll up to." :func:`build_pathway_features` counts
+    distinct ``root_pathway_id`` here to produce
+    :data:`N_PATHWAYS_COLUMN`; ``detail_data.build_target_pathways`` renders
+    the same rows as browsable evidence. Extracted so the number shown in the
+    UI and the list shown beneath it cannot disagree — a displayed list of
+    forty pathways under a count of twenty-two would read as a bug in the
+    score, not a difference in what is being counted.
+
+    No filtering on ``evidence_code``: inferred (:data:`INFERRED_EVIDENCE_CODE`)
+    annotations are kept, because the feature has always counted them and
+    dropping them here would silently change the score.
+
+    Args:
+        gene_ids: Unversioned Ensembl gene IDs.
+
+    Returns:
+        The human Reactome mapping restricted to *gene_ids*, with a
+        ``root_pathway_id`` column added. Empty (with the mapping's schema)
+        when *gene_ids* is empty.
+    """
+    mapping, relations = _load_human_pathway_data()
+    relevant = mapping.filter(pl.col("ensembl_gene_id").is_in(gene_ids))
+    return _with_root_pathway(relevant, relations)
 
 
 def pathway_overlap_with_known_genes(
@@ -224,9 +254,7 @@ def build_pathway_features(
     if not gene_ids:
         return pl.DataFrame(schema=result_schema)
 
-    mapping, relations = _load_human_pathway_data()
-    relevant = mapping.filter(pl.col("ensembl_gene_id").is_in(gene_ids))
-    with_roots = _with_root_pathway(relevant, relations)
+    with_roots = pathway_memberships(gene_ids)
 
     counts = (
         with_roots.group_by("ensembl_gene_id")

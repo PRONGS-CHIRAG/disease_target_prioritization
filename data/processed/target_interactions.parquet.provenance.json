@@ -1,0 +1,26 @@
+{
+  "artifacts": {
+    "target_interactions": {
+      "rows": 153117,
+      "targets_covered": 14988
+    },
+    "target_pathways": {
+      "root_categories": 29,
+      "rows": 139312,
+      "targets_covered": 10863
+    },
+    "target_tissue_expression": {
+      "rows": 1491852,
+      "targets_covered": 21939,
+      "tissues": 68
+    }
+  },
+  "dataset_version": "26.06",
+  "generated_at": "2026-08-21T11:57:45.586153+00:00",
+  "n_targets_requested": 22337,
+  "notes": "Presentation data for Context.md \u00a721's target-detail view; never a model feature. Pathway rows are grouped by root category so their group count equals path__n_pathways. Supporting literature is NOT included \u2014 see presentation.NOT_BUILDABLE and Context.md \u00a730.1.",
+  "parameters": {
+    "partner_min_score": 700,
+    "partners_per_target": 15
+  }
+}

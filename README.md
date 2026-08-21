@@ -35,7 +35,19 @@ FastAPI surface (`/api/meta`, `/api/diseases*`, `/api/rank`, `/api/evidence`) an
 a Next.js frontend that replaces the Milestone 3 Streamlit app — disease overview,
 target ranking with scenario weights and CSV export, target evidence with an
 exact contribution breakdown and evidence radar, and a 2-4 target comparison
-view. 479 tests.
+view. Target evidence also browses the named evidence behind the aggregates
+(Context.md §21): Reactome pathways grouped by root category, GTEx median TPM
+across all 68 tissues with the disease-relevant ones marked, and
+high-confidence STRING interaction partners. 499 Python tests, 26 frontend.
+
+Three of Context.md §21's four target-detail evidence items are served as
+browsable evidence from artifacts built by `scripts/build_evidence_detail.py`
+and committed under `data/processed/` — the raw Reactome/GTEx/STRING pulls are
+~3 GB and never enter the container image. The fourth, supporting literature,
+is *not* built: the only signal downloaded is a Europe PMC co-mention score,
+with no titles or abstracts, so it is declared in `presentation.NOT_BUILDABLE`
+alongside direction of effect and confidence level rather than shown as an
+empty panel. Retrieving real papers is Context.md §30.1.
 
 No stubs remain. `features/pathways.py`, `expression.py` and `network.py` (Context
 §28 Step 9) and `api/main.py`'s `/rank` were the last four in the Python package —

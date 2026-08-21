@@ -31,15 +31,21 @@ from target_prioritization.api.schemas import (
     DiseaseSummaryResponse,
     EvidenceBreakdown,
     EvidenceCategoryStatus,
+    EvidenceDetailResponse,
     EvidenceItemResponse,
     EvidenceRequest,
     EvidenceResponse,
     HealthResponse,
+    InteractionPartnerResponse,
+    LiteratureSummaryResponse,
     MetaResponse,
+    PathwayGroupResponse,
+    PathwayRefResponse,
     RankedTargetResponse,
     RankingRequest,
     RankingResponse,
     ScenarioPresetResponse,
+    TissueValueResponse,
 )
 from target_prioritization.config import load_diseases, load_model_config
 from target_prioritization.data.open_targets import release_tag
@@ -58,6 +64,7 @@ from target_prioritization.presentation import (
     SCENARIO_PRESETS,
 )
 from target_prioritization.services.disease_search import DiseaseSearchResult, search_diseases
+from target_prioritization.services.evidence_detail import build_evidence_detail
 from target_prioritization.services.evidence_summary import EvidenceItem, build_evidence_card
 from target_prioritization.services.target_ranking import (
     APP_EVIDENCE_CATEGORIES,
@@ -466,6 +473,73 @@ def evidence(request: EvidenceRequest) -> EvidenceResponse:
         not_buildable=NOT_BUILDABLE,
         source_links=card.source_links,
         limitations=card.limitations,
+    )
+
+
+@app.get("/api/evidence/detail", response_model=EvidenceDetailResponse)
+def evidence_detail(disease_id: str, target_id: str) -> EvidenceDetailResponse:
+    """The browsable half of Context.md §21's target-detail view.
+
+    Named Reactome pathways, per-tissue GTEx expression and high-confidence
+    STRING partners — the rows behind ``path__n_pathways``, ``expr__*`` and
+    ``net__*``, which the feature table only carries as aggregates.
+
+    A GET with query parameters rather than a POST like ``/api/evidence``:
+    this response does not depend on the scenario weights, so it is safely
+    cacheable and needs no body. Kept off ``/api/evidence`` so ``/compare``,
+    which renders four evidence cards and none of this, does not pay for it.
+    """
+    try:
+        detail = build_evidence_detail(disease_id, target_id, features=cached_features())
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        # The detail artifacts are committed, so this means an incomplete
+        # checkout or image rather than a pipeline that has not been run.
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return EvidenceDetailResponse(
+        disease_id=detail.disease_id,
+        disease_name=detail.disease_name,
+        target_id=detail.target_id,
+        gene_symbol=detail.gene_symbol,
+        pathway_groups=[
+            PathwayGroupResponse(
+                root_pathway_id=group.root_pathway_id,
+                root_pathway_name=group.root_pathway_name,
+                pathways=[
+                    PathwayRefResponse(pathway_id=ref.pathway_id, name=ref.name, url=ref.url)
+                    for ref in group.pathways
+                ],
+            )
+            for group in detail.pathway_groups
+        ],
+        n_root_categories=detail.n_root_categories,
+        tissues=[
+            TissueValueResponse(
+                tissue=t.tissue, median_tpm=t.median_tpm, is_relevant=t.is_relevant
+            )
+            for t in detail.tissues
+        ],
+        relevant_tissues_matched=detail.relevant_tissues_matched,
+        relevant_tissues_unmatched=detail.relevant_tissues_unmatched,
+        partners=[
+            InteractionPartnerResponse(
+                target_id=partner.target_id,
+                gene_symbol=partner.gene_symbol,
+                score=partner.score,
+                is_candidate=partner.is_candidate,
+            )
+            for partner in detail.partners
+        ],
+        partner_min_score=detail.partner_min_score,
+        literature=LiteratureSummaryResponse(
+            europepmc_score=detail.literature.europepmc_score,
+            europepmc_evidence_count=detail.literature.europepmc_evidence_count,
+            search_url=detail.literature.search_url,
+        ),
+        not_buildable=NOT_BUILDABLE,
+        dataset_version=detail.dataset_version,
     )
 
 

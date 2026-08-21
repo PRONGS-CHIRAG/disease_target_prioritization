@@ -141,4 +141,13 @@ CUSTOM_LABEL = "Custom"
 NOT_BUILDABLE: dict[str, str] = {
     "Direction of effect": "nothing in the pipeline computes this yet (Context.md §37.6)",
     "Confidence level": "no calibrated uncertainty estimate exists yet (Context.md §30.13, §37.1)",
+    # The other three §21 detail items (pathways, tissue expression, protein
+    # interactions) are served as browsable evidence by
+    # services/evidence_detail.py. This one cannot be: the only literature
+    # signal downloaded is Open Targets' EuropePMC co-mention score, and
+    # retrieving titles/dates/abstracts is a new data source (§30.1).
+    "Supporting literature": (
+        "only a co-mention score is available; no titles, dates or abstracts are "
+        "retrieved yet (Context.md §21, §30.1)"
+    ),
 }

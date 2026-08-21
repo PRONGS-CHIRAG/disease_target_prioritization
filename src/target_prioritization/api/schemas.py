@@ -19,16 +19,22 @@ __all__ = [
     "DiseaseSummaryResponse",
     "EvidenceBreakdown",
     "EvidenceCategoryStatus",
+    "EvidenceDetailResponse",
     "EvidenceItemResponse",
     "EvidenceRequest",
     "EvidenceResponse",
     "HealthResponse",
+    "InteractionPartnerResponse",
+    "LiteratureSummaryResponse",
     "MetaResponse",
+    "PathwayGroupResponse",
+    "PathwayRefResponse",
     "RankedTargetResponse",
     "RankingFiltersRequest",
     "RankingRequest",
     "RankingResponse",
     "ScenarioPresetResponse",
+    "TissueValueResponse",
 ]
 
 # Returned with every response that carries scores or evidence, never tucked
@@ -272,4 +278,98 @@ class EvidenceResponse(BaseModel):
         "placeholder, never a blank or a zero.",
     )
     source_links: dict[str, str] = Field(default_factory=dict)
+    limitations: list[str] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Browsable evidence detail (Context.md §21) — the named rows behind
+# path__n_pathways / expr__* / net__*. Served by its own GET endpoint rather
+# than folded into EvidenceResponse: it is weight-independent (so cacheable,
+# unlike /api/evidence) and /compare would otherwise pay for four targets'
+# worth of it without rendering any.
+# ---------------------------------------------------------------------------
+
+
+class PathwayRefResponse(BaseModel):
+    pathway_id: str
+    name: str
+    url: str = Field(description="Reactome's own page for this pathway.")
+
+
+class PathwayGroupResponse(BaseModel):
+    root_pathway_id: str
+    root_pathway_name: str
+    pathways: list[PathwayRefResponse] = Field(default_factory=list)
+
+
+class TissueValueResponse(BaseModel):
+    tissue: str = Field(description="GTEx tissue column name, e.g. `Brain_Cortex`.")
+    median_tpm: float
+    is_relevant: bool = Field(
+        description="True when this tissue is one `configs/diseases.yaml` names as relevant "
+        "for the selected disease — matched by the same function that produced "
+        "`expr__relevant_tissue_tpm`, so highlight and feature cannot disagree."
+    )
+
+
+class InteractionPartnerResponse(BaseModel):
+    target_id: str
+    gene_symbol: str
+    score: int = Field(description="STRING combined score, 0-1000.")
+    is_candidate: bool = Field(
+        description="Whether this partner is itself a candidate for the SELECTED disease. "
+        "False means do not link to its evidence page — there is no (disease, target) row "
+        "for it and /api/evidence would 404."
+    )
+
+
+class LiteratureSummaryResponse(BaseModel):
+    """The only literature signal this repo has: a co-mention score.
+
+    Named papers are Context.md §30.1 and are declared absent through
+    `not_buildable`, not represented by an empty list here.
+    """
+
+    europepmc_score: float | None = None
+    europepmc_evidence_count: float | None = None
+    search_url: str = Field(
+        description="A Europe PMC search for this gene and disease. Hands the reader the "
+        "query; it is not literature retrieval."
+    )
+
+
+class EvidenceDetailResponse(BaseModel):
+    disease_id: str
+    disease_name: str
+    target_id: str
+    gene_symbol: str
+    pathway_groups: list[PathwayGroupResponse] = Field(default_factory=list)
+    n_root_categories: int = Field(
+        description="Equals `path__n_pathways` by construction — both count distinct root "
+        "Reactome categories, from one shared code path."
+    )
+    tissues: list[TissueValueResponse] = Field(
+        default_factory=list, description="Every GTEx tissue, descending by median TPM."
+    )
+    relevant_tissues_matched: dict[str, list[str]] = Field(
+        default_factory=dict,
+        description="Configured tissue name -> the GTEx columns it matched.",
+    )
+    relevant_tissues_unmatched: list[str] = Field(
+        default_factory=list,
+        description="Configured tissues with NO GTEx column — GTEx has no synovial data at "
+        "all, so rheumatoid arthritis lands here (milestone4.md §1). Render as explicit "
+        "absence, never as a blank.",
+    )
+    partners: list[InteractionPartnerResponse] = Field(default_factory=list)
+    partner_min_score: int = Field(
+        description="STRING confidence floor applied when the partner list was built."
+    )
+    literature: LiteratureSummaryResponse
+    not_buildable: dict[str, str] = Field(
+        default_factory=dict,
+        description="Detail items nothing in the pipeline produces yet, including supporting "
+        "literature (Context.md §30.1).",
+    )
+    dataset_version: str
     limitations: list[str] = Field(default_factory=list)

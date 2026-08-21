@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 
 import { EvidenceCard } from "@/components/evidence/evidence-card";
+import { EvidenceDetailPanels } from "@/components/evidence/evidence-detail-panels";
 import { ApiErrorNotice, LoadingBlock, SelectDiseasePrompt } from "@/components/page-states";
 import { useDiseaseId } from "@/hooks/use-disease-id";
 import { useEvidence, type EvidenceRequestBody } from "@/hooks/use-evidence";
@@ -54,7 +55,7 @@ function EvidenceContent() {
   }
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl space-y-6">
       <EvidenceCard
         evidence={evidence}
         meta={meta}
@@ -64,6 +65,10 @@ function EvidenceContent() {
             : "Scored with the API's default weights — open from Target ranking to match its active scenario."
         }
       />
+      {/* The named evidence behind the aggregates above (Context.md §21).
+          Its own query, keyed on (disease, target) only — moving the weight
+          sliders changes the score, never these facts. */}
+      <EvidenceDetailPanels diseaseId={diseaseId} targetId={targetId} />
     </div>
   );
 }
